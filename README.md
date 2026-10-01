@@ -74,9 +74,9 @@ The actual structure may change as deployment support is implemented.
 
 | Project | Description |
 | --- | --- |
-| `infra-node` | Common SDK and contracts for InfraMesh nodes |
-| `infra-router` | Reference implementation for Router nodes |
-| `infra-worker` | Reference implementation for Worker nodes |
+| [`infra-node`](https://github.com/InfraMeshLabs/infra-node) | Common SDK, contracts, and integrations for InfraMesh nodes |
+| [`infra-router`](https://github.com/InfraMeshLabs/infra-router) | Reference implementation for Router nodes |
+| [`infra-worker`](https://github.com/InfraMeshLabs/infra-worker) | Reference implementation for Worker nodes |
 
 ## Documentation
 
