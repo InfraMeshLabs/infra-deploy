@@ -1,0 +1,90 @@
+# InfraMesh Console stack (Console + PostgreSQL + Redis).
+# Values are read from the .env file in this directory (see .env.example).
+name: inframesh-console
+
+services:
+  console:
+    # Official public image. No build, no registry login required.
+    image: ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.1.1}
+    restart: unless-stopped
+    ports:
+      # Frontend, REST API and the OUTBOUND Node WebSocket (/ws/v1/nodes/connect) all share this port.
+      - "${INFRA_CONSOLE_PORT:-8080}:8080"
+    extra_hosts:
+      # Lets the Console reach runtimes on the Docker host (Ollama, vLLM, ...) at
+      # http://host.docker.internal:<port>. Docker Desktop provides this name by default;
+      # declaring it makes the same address work on Linux.
+      - "host.docker.internal:host-gateway"
+    environment:
+      # The image runs with SPRING_PROFILES_ACTIVE=prod. Required values have no defaults.
+      SPRING_DB_HOST: postgres
+      SPRING_DB_PORT: 5432
+      SPRING_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      SPRING_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      INFRA_ADMIN_USERNAME: ${INFRA_ADMIN_USERNAME:-admin}
+      INFRA_ADMIN_PASSWORD: ${INFRA_ADMIN_PASSWORD:?INFRA_ADMIN_PASSWORD is required}
+      INFRA_ADMIN_NICKNAME: ${INFRA_ADMIN_NICKNAME:-admin}
+      INFRA_ADMIN_EMAIL: ${INFRA_ADMIN_EMAIL:-admin@infra-console.local}
+      ALLOWED_ORIGIN_PATTERNS: ${ALLOWED_ORIGIN_PATTERNS:-http://localhost:${INFRA_CONSOLE_PORT:-8080}}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      JWT_REFRESH_TOKEN_EXPRATION: ${JWT_REFRESH_TOKEN_EXPRATION:-1209600000}
+      NODE_OUTBOUND_REQUEST_TIMEOUT: ${NODE_OUTBOUND_REQUEST_TIMEOUT:-60s}
+      NODE_OUTBOUND_HEARTBEAT_TIMEOUT: ${NODE_OUTBOUND_HEARTBEAT_TIMEOUT:-30s}
+      NODE_OUTBOUND_STREAM_IDLE_TIMEOUT: ${NODE_OUTBOUND_STREAM_IDLE_TIMEOUT:-60s}
+      NODE_REGISTRATION_TOKEN_TTL: ${NODE_REGISTRATION_TOKEN_TTL:-10m}
+      ROUTING_AFFINITY_ENABLED: ${ROUTING_AFFINITY_ENABLED:-true}
+      ROUTING_AFFINITY_TTL: ${ROUTING_AFFINITY_TTL:-30m}
+      WORKER_CAPACITY_INFLIGHT_TTL: ${WORKER_CAPACITY_INFLIGHT_TTL:-5m}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # The Console has no dedicated health API. If the frontend entry page responds, it is up
+      # (a failed DB connection or migration prevents the application from starting at all).
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      # The Console's database name is fixed to infra_mesh.
+      POSTGRES_DB: infra_mesh
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # Read by redis-cli in the healthcheck.
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-}
+    # Redis only holds Session Affinity and Worker In-Flight Capacity state. Both are TTL-based
+    # and rebuilt on the next request, so nothing is written to disk (no volume).
+    command: ["sh", "-c", "exec redis-server --save '' --appendonly no $${REDIS_PASSWORD:+--requirepass \"$$REDIS_PASSWORD\"}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
