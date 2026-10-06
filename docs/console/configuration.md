@@ -41,7 +41,10 @@ Important:
 | `INFRA_ADMIN_USERNAME` | `admin` | Bootstrap admin username |
 | `INFRA_ADMIN_NICKNAME` | `admin` | Bootstrap admin nickname |
 | `INFRA_ADMIN_EMAIL` | `admin@infra-console.local` | Bootstrap admin email |
-| `REDIS_PASSWORD` | (none) | When set, Redis requires this password and the Console uses it. Empty means no authentication. |
+| `INFRAMESH_SESSION_AFFINITY_ENABLED` | `false` | Enables Session Affinity on the Console. Redis is only used when this is `true` — start the stack with `--profile affinity`. Teams can then turn it on or off individually. |
+| `INFRAMESH_SESSION_AFFINITY_TTL` | `30m` | Session Affinity TTL |
+| `WORKER_CAPACITY_MODE` | `MEMORY` | Where Worker in-flight capacity is kept, independent of Session Affinity. `MEMORY`: Console memory, no Redis, single Console only. `REDIS`: shared across Consoles — start the stack with `--profile redis`. |
+| `REDIS_PASSWORD` | (none) | Only used when Redis is used. When set, Redis requires this password and the Console uses it. Empty means no authentication. |
 | `ALLOWED_ORIGIN_PATTERNS` | `http://localhost:<INFRA_CONSOLE_PORT>` | Only needed when a frontend on a different origin calls the API |
 | `JWT_EXPIRATION` | `3600000` | Access token lifetime (ms) |
 | `JWT_REFRESH_TOKEN_EXPRATION` | `1209600000` | Refresh token lifetime (ms). The spelling matches the Console setting. |
@@ -49,8 +52,6 @@ Important:
 | `NODE_OUTBOUND_HEARTBEAT_TIMEOUT` | `30s` | OUTBOUND Node heartbeat timeout |
 | `NODE_OUTBOUND_STREAM_IDLE_TIMEOUT` | `60s` | Maximum silence between OUTBOUND streaming chunks |
 | `NODE_REGISTRATION_TOKEN_TTL` | `10m` | Node Registration Token lifetime |
-| `ROUTING_AFFINITY_ENABLED` | `true` | Enables Session Affinity |
-| `ROUTING_AFFINITY_TTL` | `30m` | Session Affinity TTL |
 | `WORKER_CAPACITY_INFLIGHT_TTL` | `5m` | Worker In-Flight reservation lease |
 
 ## Fixed by Compose
@@ -60,5 +61,5 @@ These Console settings are set in `console/docker-compose.yml` to the internal s
 | Console variable | Value |
 | --- | --- |
 | `SPRING_DB_HOST` / `SPRING_DB_PORT` | `postgres` / `5432` |
-| `REDIS_HOST` / `REDIS_PORT` | `redis` / `6379` |
+| `REDIS_HOST` / `REDIS_PORT` | `redis` / `6379` (only used when Session Affinity is enabled or `WORKER_CAPACITY_MODE=REDIS`) |
 | `SPRING_PROFILES_ACTIVE` | `prod` (set by the image) |
