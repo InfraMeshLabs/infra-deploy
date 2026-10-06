@@ -23,7 +23,7 @@ Run these commands from the `console/` directory.
    docker compose up -d
    ```
 
-   To update only the Console and leave PostgreSQL and Redis untouched:
+   To update only the Console and leave PostgreSQL (and Redis, if used) untouched:
 
    ```bash
    docker compose pull console

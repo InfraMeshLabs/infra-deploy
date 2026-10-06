@@ -4,7 +4,7 @@ InfraMesh Deploy provides Docker Compose based deployment for InfraMesh componen
 
 | Component | Directory | Status |
 | --- | --- | --- |
-| Console (with PostgreSQL and Redis) | [`console/`](console) | Available |
+| Console (with PostgreSQL, optional Redis) | [`console/`](console) | Available |
 | Router | — | Planned |
 | Worker | — | Planned |
 
@@ -41,6 +41,8 @@ openssl rand -base64 32   # ENCRYPTION_KEY (must be exactly 32 bytes; never chan
 
 `docker compose up` refuses to start while a required value is empty.
 
+Redis is optional infrastructure and is not started by default. It may be used for Session Affinity and for shared Worker Capacity coordination across multiple Consoles — see [Redis](docs/console/installation.md#redis-optional). Without Redis, Session Affinity is unavailable and Worker Capacity is kept in the Console's memory.
+
 ## Deployment Architecture
 
 ```text
@@ -54,14 +56,21 @@ openssl rand -base64 32   # ENCRYPTION_KEY (must be exactly 32 bytes; never chan
              ┌────────┴────────┐
              │                 │
              ▼                 ▼
-        PostgreSQL           Redis
+        PostgreSQL           Redis (optional)
+```
+
+```text
+Required                 Optional
+- Console                - Redis
+- PostgreSQL                 - Session Affinity
+                             - Shared Worker Capacity coordination
 ```
 
 | Service | Image | Notes |
 | --- | --- | --- |
 | `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.1.1}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
 | `postgres` | `postgres:16` | Database `infra_mesh`. Data persisted in the `postgres-data` volume. |
-| `redis` | `redis:7.4` | Session Affinity and Worker In-Flight Capacity. TTL-based runtime state only, so no volume. |
+| `redis` | `redis:7.4` | Optional, only started with `--profile affinity` or `--profile redis`. Holds Session Affinity and shared Worker Capacity state (TTL-based, no volume). |
 
 Only the Console port is published to the host. Change it with `INFRA_CONSOLE_PORT` in `console/.env`.
 
@@ -142,7 +151,7 @@ This repository currently deploys the **Console**. Router and Worker deployments
 | Repository | Responsible for |
 | --- | --- |
 | [`infra-console`](https://github.com/InfraMeshLabs/infra-console) | Console application (frontend, backend), Dockerfile, official image build and GHCR publishing |
-| `infra-deploy` (this repository) | Docker Compose, environment template, PostgreSQL, Redis, deployment documentation |
+| `infra-deploy` (this repository) | Docker Compose, environment template, PostgreSQL, optional Redis, deployment documentation |
 
 This repository never rebuilds the Console image.
 

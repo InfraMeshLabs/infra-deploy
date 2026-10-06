@@ -1,4 +1,9 @@
-# InfraMesh Console stack (Console + PostgreSQL + Redis).
+# InfraMesh Console stack (Console + PostgreSQL, optionally Redis).
+# Redis is optional infrastructure - only needed for Session Affinity or shared Worker Capacity (multiple Consoles).
+# It is not part of the default stack:
+#   docker compose up -d                       # Console + PostgreSQL
+#   docker compose --profile affinity up -d    # + Redis (set INFRAMESH_SESSION_AFFINITY_ENABLED=true in .env)
+#   docker compose --profile redis up -d       # + Redis (set WORKER_CAPACITY_MODE=REDIS in .env). Both profiles start the same Redis.
 # Values are read from the .env file in this directory (see .env.example).
 name: inframesh-console
 
@@ -21,6 +26,9 @@ services:
       SPRING_DB_PORT: 5432
       SPRING_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
       SPRING_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # Global Session Affinity. The Console only connects to Redis when this is true - enable it together with the affinity profile.
+      INFRAMESH_SESSION_AFFINITY_ENABLED: ${INFRAMESH_SESSION_AFFINITY_ENABLED:-false}
+      INFRAMESH_SESSION_AFFINITY_TTL: ${INFRAMESH_SESSION_AFFINITY_TTL:-30m}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -37,14 +45,16 @@ services:
       NODE_OUTBOUND_HEARTBEAT_TIMEOUT: ${NODE_OUTBOUND_HEARTBEAT_TIMEOUT:-30s}
       NODE_OUTBOUND_STREAM_IDLE_TIMEOUT: ${NODE_OUTBOUND_STREAM_IDLE_TIMEOUT:-60s}
       NODE_REGISTRATION_TOKEN_TTL: ${NODE_REGISTRATION_TOKEN_TTL:-10m}
-      ROUTING_AFFINITY_ENABLED: ${ROUTING_AFFINITY_ENABLED:-true}
-      ROUTING_AFFINITY_TTL: ${ROUTING_AFFINITY_TTL:-30m}
+      # Where Worker in-flight capacity is kept (independent of Session Affinity). MEMORY: Console memory / REDIS: shared in Redis (needs the redis profile).
+      WORKER_CAPACITY_MODE: ${WORKER_CAPACITY_MODE:-MEMORY}
       WORKER_CAPACITY_INFLIGHT_TTL: ${WORKER_CAPACITY_INFLIGHT_TTL:-5m}
     depends_on:
       postgres:
         condition: service_healthy
+      # Only waited for when Redis is started with the affinity/redis profile.
       redis:
         condition: service_healthy
+        required: false
     healthcheck:
       # The Console has no dedicated health API. If the frontend entry page responds, it is up
       # (a failed DB connection or migration prevents the application from starting at all).
@@ -70,15 +80,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # Optional - only started with --profile affinity (Session Affinity) or --profile redis (shared Worker Capacity).
   redis:
     image: redis:7.4
+    profiles: ["affinity", "redis"]
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       # Read by redis-cli in the healthcheck.
       REDISCLI_AUTH: ${REDIS_PASSWORD:-}
-    # Redis only holds Session Affinity and Worker In-Flight Capacity state. Both are TTL-based
-    # and rebuilt on the next request, so nothing is written to disk (no volume).
+    # Redis only holds Session Affinity state and, with WORKER_CAPACITY_MODE=REDIS, Worker in-flight reservations.
+    # Both are TTL-based and rebuilt on the next request, so nothing is written to disk (no volume).
     command: ["sh", "-c", "exec redis-server --save '' --appendonly no $${REDIS_PASSWORD:+--requirepass \"$$REDIS_PASSWORD\"}"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]

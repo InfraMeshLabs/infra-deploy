@@ -1,12 +1,12 @@
 # Installation
 
-Runs InfraMesh Console, PostgreSQL and Redis with Docker Compose. The Compose project lives in [`console/`](../../console); run every `docker compose` command below from that directory.
+Runs InfraMesh Console and PostgreSQL with Docker Compose. Redis is [optional](#redis-optional): it is only needed for Session Affinity or shared Worker Capacity. The Compose project lives in [`console/`](../../console); run every `docker compose` command below from that directory.
 
 ```text
               InfraMesh Console  (Frontend + REST API + Node WebSocket, :8080)
                  /          \
                 ▼            ▼
-          PostgreSQL        Redis
+          PostgreSQL        Redis (optional)
 ```
 
 ## Requirements
@@ -52,9 +52,56 @@ Notes:
 
 - `.env` holds secrets and is ignored by Git. Never commit or share it.
 - `docker compose up` fails immediately if a required value is empty.
-- The Console starts after PostgreSQL and Redis are healthy, and creates its schema with Flyway on startup. An empty database is fine.
+- The Console starts after PostgreSQL is healthy (and Redis, when started with the `affinity` profile), and creates its schema with Flyway on startup. An empty database is fine.
 - The image runs with `SPRING_PROFILES_ACTIVE=prod`. Do not override it; the `local` profile and its development defaults are not part of the image.
 - PostgreSQL and Redis are not published to the host. Only the Console port is.
+- The default stack has no Redis. Authentication, organizations and teams, node management, every routing strategy and inference all work without it.
+
+## Redis (optional)
+
+Redis is optional infrastructure. It may be used for:
+
+- **Session Affinity** — sends requests that carry the same `sessionId` to the same Worker when possible.
+- **Shared Worker Capacity coordination** — lets several Console instances share each Worker's concurrency limit.
+
+The two are independent settings; enable either, both, or neither. Without Redis, Session Affinity is unavailable and Worker Capacity falls back to the Console's memory.
+
+### Session Affinity
+
+Off by default.
+
+To enable it, set this in `.env`:
+
+```env
+INFRAMESH_SESSION_AFFINITY_ENABLED=true
+```
+
+and start the stack with the `affinity` profile so Redis runs too:
+
+```bash
+docker compose --profile affinity up -d
+```
+
+- Do both. With the value set to `true` but no profile, the Console still starts, logs an ERROR that Redis is unreachable, and routes without Session Affinity.
+- To avoid typing `--profile` every time, add `COMPOSE_PROFILES=affinity` to `.env`.
+- Once enabled, each Team can turn Session Affinity on or off in its settings (on by default). While it is disabled on the Console, the Team setting has no effect but its stored value is kept.
+- Use the same profile when stopping so Redis is removed as well: `docker compose --profile affinity down`.
+- If Redis fails while Session Affinity is enabled, inference keeps working: the Console logs the failure and routes as if there were no affinity.
+
+### Shared Worker Capacity
+
+Each Worker's concurrency limit is enforced with in-flight reservations. By default (`WORKER_CAPACITY_MODE=MEMORY`) they live in the Console's memory, which needs no Redis but is only accurate with a single Console instance. To share the limit across several Console instances, set:
+
+```env
+WORKER_CAPACITY_MODE=REDIS
+```
+
+and start Redis with `docker compose --profile redis up -d` (the `affinity` and `redis` profiles start the same Redis).
+
+- Unlike Session Affinity, this does not fail open. If Redis is unreachable in `REDIS` mode, Workers that have a concurrency limit stop receiving requests (`429`) until Redis is back; Workers without a limit keep working. The Console logs an ERROR at startup when it cannot reach Redis.
+- There is no automatic mode: the Console never switches stores on its own.
+
+These settings require a Console image that supports `INFRAMESH_SESSION_AFFINITY_ENABLED` and `WORKER_CAPACITY_MODE`. Older images use Redis unconditionally and need Redis to be running.
 
 See [configuration.md](configuration.md) for every variable.
 
@@ -139,6 +186,6 @@ docker compose down -v       # also delete the volume - all database data is los
 | --- | --- | --- |
 | `postgres-data` | Organizations, teams, accounts, nodes, audit logs and all other persistent data | Everything is lost |
 
-The Console container itself is stateless. Redis holds only TTL-based runtime state (Session Affinity, Worker In-Flight Capacity) that is rebuilt after a restart, so it has no volume.
+The Console container has no persistent state. Redis (optional) holds only TTL-based state (Session Affinity, and Worker in-flight capacity in `REDIS` mode) that is rebuilt after a restart, so it has no volume. With the default `WORKER_CAPACITY_MODE=MEMORY`, Worker in-flight capacity lives in the Console's memory and is not shared between Console instances.
 
 To update the Console, see [upgrade.md](upgrade.md).
