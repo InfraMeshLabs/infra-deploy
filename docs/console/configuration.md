@@ -1,5 +1,7 @@
 # Configuration
 
+This page covers the Docker deployment. For the standalone packages, see [Standalone — Configuration](standalone.md#configuration).
+
 All Console configuration lives in `console/.env`, next to `console/docker-compose.yml`. Start from the template:
 
 ```bash
