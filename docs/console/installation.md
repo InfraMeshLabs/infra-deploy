@@ -1,6 +1,8 @@
-# Installation
+# Docker Installation
 
 Runs InfraMesh Console and PostgreSQL with Docker Compose. Redis is [optional](#redis-optional): it is only needed for Session Affinity or shared Worker Capacity. The Compose project lives in [`console/`](../../console); run every `docker compose` command below from that directory.
+
+To run the Console on a single macOS or Windows PC without Docker, see [Standalone Installation](standalone.md).
 
 ```text
               InfraMesh Console  (Frontend + REST API + Node WebSocket, :8080)
@@ -187,5 +189,26 @@ docker compose down -v       # also delete the volume - all database data is los
 | `postgres-data` | Organizations, teams, accounts, nodes, audit logs and all other persistent data | Everything is lost |
 
 The Console container has no persistent state. Redis (optional) holds only TTL-based state (Session Affinity, and Worker in-flight capacity in `REDIS` mode) that is rebuilt after a restart, so it has no volume. With the default `WORKER_CAPACITY_MODE=MEMORY`, Worker in-flight capacity lives in the Console's memory and is not shared between Console instances.
+
+## Backup and Restore
+
+All persistent data is in PostgreSQL. Run these commands from the `console/` directory while the stack is running.
+
+Back up:
+
+```bash
+docker compose exec postgres sh -c 'pg_dump -U "$POSTGRES_USER" infra_mesh' > backup.sql
+```
+
+Restore into an empty database (for example on a new host with a fresh `postgres-data` volume), before the Console has started for the first time:
+
+```bash
+docker compose up -d postgres
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d infra_mesh' < backup.sql
+docker compose up -d
+```
+
+- A backup is only usable together with the same `ENCRYPTION_KEY`. Keep `.env` (or at least `ENCRYPTION_KEY` and `JWT_SECRET_KEY`) with your backups, and store both securely.
+- `backup.sql` contains account data and encrypted keys. Do not commit or share it.
 
 To update the Console, see [upgrade.md](upgrade.md).
