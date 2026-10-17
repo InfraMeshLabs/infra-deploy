@@ -55,6 +55,12 @@ Important:
 | `NODE_OUTBOUND_STREAM_IDLE_TIMEOUT` | `60s` | Maximum silence between OUTBOUND streaming chunks |
 | `NODE_REGISTRATION_TOKEN_TTL` | `10m` | Node Registration Token lifetime |
 | `WORKER_CAPACITY_INFLIGHT_TTL` | `5m` | Worker In-Flight reservation lease |
+| `AUDIT_RETENTION_ENABLED` | `true` | Deletes Audit Logs older than the retention period every day at 03:00 |
+| `AUDIT_RETENTION_DAYS` | `180` | Audit Log retention period (days, 1 or more) |
+| `AUDIT_RETENTION_BATCH_SIZE` | `1000` | Maximum Audit Log rows deleted per transaction |
+| `REQUEST_LOG_RETENTION_ENABLED` | `true` | Deletes Request Logs older than the retention period every day at 03:00 |
+| `REQUEST_LOG_RETENTION_DAYS` | `30` | Request Log retention period (days, 1 or more) |
+| `REQUEST_LOG_RETENTION_BATCH_SIZE` | `1000` | Maximum Request Log rows deleted per transaction |
 
 ## Fixed by Compose
 
