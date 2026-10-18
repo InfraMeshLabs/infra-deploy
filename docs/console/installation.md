@@ -19,7 +19,7 @@ To run the Console on a single macOS or Windows PC without Docker, see [Standalo
 Not required: an `infra-console` checkout, Java, Node.js, Gradle, a Docker build, `docker login ghcr.io`, or a GitHub Personal Access Token. The Console image is public:
 
 ```bash
-docker pull ghcr.io/inframeshlabs/infra-console:0.1.1
+docker pull ghcr.io/inframeshlabs/infra-console:0.2.1
 ```
 
 ## Install

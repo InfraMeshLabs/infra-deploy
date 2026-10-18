@@ -22,17 +22,17 @@ Download packages only from the official Releases page:
 
 <https://github.com/InfraMeshLabs/infra-deploy/releases>
 
-Each release provides one package per platform and a matching `.sha256` file. For v0.2.0:
+Each release provides one package per platform and a matching `.sha256` file. For v0.2.1:
 
 ```text
-inframesh-console-0.2.0-macos-arm64.tar.gz
-inframesh-console-0.2.0-macos-arm64.tar.gz.sha256
+inframesh-console-0.2.1-macos-arm64.tar.gz
+inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
 
-inframesh-console-0.2.0-macos-x64.tar.gz
-inframesh-console-0.2.0-macos-x64.tar.gz.sha256
+inframesh-console-0.2.1-macos-x64.tar.gz
+inframesh-console-0.2.1-macos-x64.tar.gz.sha256
 
-inframesh-console-0.2.0-windows-x64.zip
-inframesh-console-0.2.0-windows-x64.zip.sha256
+inframesh-console-0.2.1-windows-x64.zip
+inframesh-console-0.2.1-windows-x64.zip.sha256
 ```
 
 Download both the package and its `.sha256` file into the same directory.
@@ -44,13 +44,13 @@ Download both the package and its `.sha256` file into the same directory.
 Run this in the directory that contains both files:
 
 ```bash
-shasum -a 256 -c inframesh-console-0.2.0-macos-arm64.tar.gz.sha256
+shasum -a 256 -c inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
 ```
 
 The output must end with `OK`:
 
 ```text
-inframesh-console-0.2.0-macos-arm64.tar.gz: OK
+inframesh-console-0.2.1-macos-arm64.tar.gz: OK
 ```
 
 If it reports `FAILED`, delete the download and download it again from the Releases page. Do not run a package whose checksum does not match. On Intel Macs, replace `arm64` with `x64` in the file names.
@@ -58,15 +58,15 @@ If it reports `FAILED`, delete the download and download it again from the Relea
 ### 2. Extract
 
 ```bash
-tar -xzf inframesh-console-0.2.0-macos-arm64.tar.gz
+tar -xzf inframesh-console-0.2.1-macos-arm64.tar.gz
 ```
 
-This creates the `inframesh-console-0.2.0/` directory. It contains only the application; your data is stored separately (see [Data Directory](#data-directory)).
+This creates the `inframesh-console-0.2.1/` directory. It contains only the application; your data is stored separately (see [Data Directory](#data-directory)).
 
 ### 3. Run the launcher
 
 ```bash
-./inframesh-console-0.2.0/bin/inframesh
+./inframesh-console-0.2.1/bin/inframesh
 ```
 
 The launcher prints the data directory, starts the Console, and opens your default browser once the Console is ready:
@@ -103,17 +103,17 @@ In PowerShell, in the directory that contains both files:
 
 ```powershell
 Get-FileHash `
-  .\inframesh-console-0.2.0-windows-x64.zip `
+  .\inframesh-console-0.2.1-windows-x64.zip `
   -Algorithm SHA256
 ```
 
-Compare the printed `Hash` with the value at the start of `inframesh-console-0.2.0-windows-x64.zip.sha256` (open it in Notepad). They must be identical; letter case does not matter.
+Compare the printed `Hash` with the value at the start of `inframesh-console-0.2.1-windows-x64.zip.sha256` (open it in Notepad). They must be identical; letter case does not matter.
 
 To compare automatically:
 
 ```powershell
-$expected = (Get-Content .\inframesh-console-0.2.0-windows-x64.zip.sha256) -split '\s+' | Select-Object -First 1
-$actual = (Get-FileHash .\inframesh-console-0.2.0-windows-x64.zip -Algorithm SHA256).Hash
+$expected = (Get-Content .\inframesh-console-0.2.1-windows-x64.zip.sha256) -split '\s+' | Select-Object -First 1
+$actual = (Get-FileHash .\inframesh-console-0.2.1-windows-x64.zip -Algorithm SHA256).Hash
 if ($actual -eq $expected) { 'OK' } else { 'MISMATCH - do not run this package' }
 ```
 
@@ -124,17 +124,17 @@ If the values differ, delete the download and download it again from the Release
 Extract the ZIP (right-click → **Extract All…**, or `Expand-Archive` in PowerShell):
 
 ```powershell
-Expand-Archive .\inframesh-console-0.2.0-windows-x64.zip -DestinationPath .
+Expand-Archive .\inframesh-console-0.2.1-windows-x64.zip -DestinationPath .
 ```
 
-This creates the `inframesh-console-0.2.0\` directory.
+This creates the `inframesh-console-0.2.1\` directory.
 
 ### 3. Run the launcher
 
 From Command Prompt or PowerShell in the directory where you extracted the ZIP:
 
 ```bat
-inframesh-console-0.2.0\bin\inframesh.cmd
+inframesh-console-0.2.1\bin\inframesh.cmd
 ```
 
 The launcher starts the Console and opens your default browser once it is ready. Keep the window open while you use the Console, and press `Ctrl+C` in it to stop.
@@ -197,7 +197,7 @@ The launcher takes no command-line arguments. Configure it with environment vari
 macOS:
 
 ```bash
-SERVER_PORT=9090 INFRAMESH_OPEN_BROWSER=false ./inframesh-console-0.2.0/bin/inframesh
+SERVER_PORT=9090 INFRAMESH_OPEN_BROWSER=false ./inframesh-console-0.2.1/bin/inframesh
 ```
 
 Windows (Command Prompt):
@@ -205,7 +205,7 @@ Windows (Command Prompt):
 ```bat
 set SERVER_PORT=9090
 set INFRAMESH_OPEN_BROWSER=false
-inframesh-console-0.2.0\bin\inframesh.cmd
+inframesh-console-0.2.1\bin\inframesh.cmd
 ```
 
 Windows (PowerShell):
@@ -213,7 +213,7 @@ Windows (PowerShell):
 ```powershell
 $env:SERVER_PORT = '9090'
 $env:INFRAMESH_OPEN_BROWSER = 'false'
-.\inframesh-console-0.2.0\bin\inframesh.cmd
+.\inframesh-console-0.2.1\bin\inframesh.cmd
 ```
 
 Settings can also be placed in `<INFRAMESH_HOME>/config/application.yml` (optional; it does not exist by default). Environment variables take precedence over that file.
@@ -233,7 +233,7 @@ The extracted package directory (the **installation directory**) contains only t
 
 ```text
 Installation (replaceable)
-└── inframesh-console-0.2.0/
+└── inframesh-console-0.2.1/
     ├── bin/        launcher
     ├── app/        Console application
     └── runtime/    bundled Java runtime
@@ -256,12 +256,12 @@ Persistent Data (keep)
 Set `INFRAMESH_HOME` before running the launcher:
 
 ```bash
-INFRAMESH_HOME="$HOME/inframesh-data" ./inframesh-console-0.2.0/bin/inframesh
+INFRAMESH_HOME="$HOME/inframesh-data" ./inframesh-console-0.2.1/bin/inframesh
 ```
 
 ```powershell
 $env:INFRAMESH_HOME = 'D:\inframesh-data'
-.\inframesh-console-0.2.0\bin\inframesh.cmd
+.\inframesh-console-0.2.1\bin\inframesh.cmd
 ```
 
 Use the same value every time. A different `INFRAMESH_HOME` starts with an empty database.

@@ -85,15 +85,15 @@ Each package ships with a `.sha256` checksum file. There is no Linux standalone 
    macOS:
 
    ```bash
-   shasum -a 256 -c inframesh-console-0.2.0-macos-arm64.tar.gz.sha256
-   tar -xzf inframesh-console-0.2.0-macos-arm64.tar.gz
-   ./inframesh-console-0.2.0/bin/inframesh
+   shasum -a 256 -c inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
+   tar -xzf inframesh-console-0.2.1-macos-arm64.tar.gz
+   ./inframesh-console-0.2.1/bin/inframesh
    ```
 
    Windows (after verifying the checksum and extracting the ZIP):
 
    ```bat
-   inframesh-console-0.2.0\bin\inframesh.cmd
+   inframesh-console-0.2.1\bin\inframesh.cmd
    ```
 
 3. When the Console is ready, your browser opens `http://127.0.0.1:8080`. On the first launch you create the administrator account in the browser.
@@ -153,7 +153,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 
 | Service | Image | Notes |
 | --- | --- | --- |
-| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.1.1}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
+| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.1}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
 | `postgres` | `postgres:16` | Database `infra_mesh`. Data persisted in the `postgres-data` volume. |
 | `redis` | `redis:7.4` | Optional, only started with `--profile affinity` or `--profile redis`. Holds Session Affinity and shared Worker Capacity state (TTL-based, no volume). |
 
@@ -172,7 +172,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 The Console image tag is set in `console/.env`:
 
 ```env
-INFRA_CONSOLE_VERSION=0.1.1
+INFRA_CONSOLE_VERSION=0.2.1
 ```
 
 The default is a pinned version so that a deployment always reproduces the same Console. `INFRA_CONSOLE_VERSION=latest` is also available if you explicitly want to track the newest release. See [Upgrading](docs/console/upgrade.md).
