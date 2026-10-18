@@ -55,7 +55,7 @@ Recommendations:
 
 ## Package Integrity
 
-Current limitations of the v0.2.0 standalone packages:
+Current limitations of the v0.2.1 standalone packages:
 
 - macOS packages are not code-signed.
 - macOS packages are not notarized.

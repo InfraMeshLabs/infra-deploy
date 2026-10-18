@@ -64,7 +64,7 @@ Run these commands from the `console/` directory.
 2. **Change the version** in `console/.env`:
 
    ```env
-   INFRA_CONSOLE_VERSION=0.2.0
+   INFRA_CONSOLE_VERSION=0.2.1
    ```
 
 3. **Pull the new image and restart:**
@@ -99,7 +99,7 @@ Pull the latest `infra-deploy` changes first (`git pull`) when a release changes
 Two kinds of tags are published to `ghcr.io/inframeshlabs/infra-console`:
 
 ```text
-0.2.0     a specific release
+0.2.1     a specific release
 latest    the newest release
 ```
 

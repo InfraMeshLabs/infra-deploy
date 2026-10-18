@@ -10,7 +10,7 @@ name: inframesh-console
 services:
   console:
     # Official public image. No build, no registry login required.
-    image: ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.1.1}
+    image: ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.1}
     restart: unless-stopped
     ports:
       # Frontend, REST API and the OUTBOUND Node WebSocket (/ws/v1/nodes/connect) all share this port.
@@ -48,6 +48,7 @@ services:
       # Where Worker in-flight capacity is kept (independent of Session Affinity). MEMORY: Console memory / REDIS: shared in Redis (needs the redis profile).
       WORKER_CAPACITY_MODE: ${WORKER_CAPACITY_MODE:-MEMORY}
       WORKER_CAPACITY_INFLIGHT_TTL: ${WORKER_CAPACITY_INFLIGHT_TTL:-5m}
+      INFERENCE_MAX_REQUEST_BODY_SIZE: ${INFERENCE_MAX_REQUEST_BODY_SIZE:-10MB}
       # Log retention (days). Every day at 03:00 the Console deletes Audit / Request Logs older than this, batch-size rows at a time.
       AUDIT_RETENTION_ENABLED: ${AUDIT_RETENTION_ENABLED:-true}
       AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-180}

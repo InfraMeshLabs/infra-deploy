@@ -15,7 +15,7 @@ Do not wrap values in quotes. `.env` is ignored by Git; never commit or share it
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `INFRA_CONSOLE_VERSION` | `0.1.1` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
+| `INFRA_CONSOLE_VERSION` | `0.2.1` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
 | `INFRA_CONSOLE_PORT` | `8080` | Host port for the Console. The container port is always `8080`. |
 
 ## Required
@@ -55,6 +55,7 @@ Important:
 | `NODE_OUTBOUND_STREAM_IDLE_TIMEOUT` | `60s` | Maximum silence between OUTBOUND streaming chunks |
 | `NODE_REGISTRATION_TOKEN_TTL` | `10m` | Node Registration Token lifetime |
 | `WORKER_CAPACITY_INFLIGHT_TTL` | `5m` | Worker In-Flight reservation lease |
+| `INFERENCE_MAX_REQUEST_BODY_SIZE` | `10MB` | Maximum request body size of the inference APIs (invoke / stream / simple chat / OpenAI-compatible); larger requests get 413. `MB` is binary (10MB = 10 MiB); a plain number is bytes. Other APIs are not limited |
 | `AUDIT_RETENTION_ENABLED` | `true` | Deletes Audit Logs older than the retention period every day at 03:00 |
 | `AUDIT_RETENTION_DAYS` | `180` | Audit Log retention period (days, 1 or more) |
 | `AUDIT_RETENTION_BATCH_SIZE` | `1000` | Maximum Audit Log rows deleted per transaction |
