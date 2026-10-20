@@ -10,7 +10,7 @@ name: inframesh-console
 services:
   console:
     # Official public image. No build, no registry login required.
-    image: ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.1}
+    image: ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.2}
     restart: unless-stopped
     ports:
       # Frontend, REST API and the OUTBOUND Node WebSocket (/ws/v1/nodes/connect) all share this port.

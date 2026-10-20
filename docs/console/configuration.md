@@ -15,7 +15,7 @@ Do not wrap values in quotes. `.env` is ignored by Git; never commit or share it
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `INFRA_CONSOLE_VERSION` | `0.2.1` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
+| `INFRA_CONSOLE_VERSION` | `0.2.2` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
 | `INFRA_CONSOLE_PORT` | `8080` | Host port for the Console. The container port is always `8080`. |
 
 ## Required
@@ -25,14 +25,14 @@ Do not wrap values in quotes. `.env` is ignored by Git; never commit or share it
 | `POSTGRES_USER` | PostgreSQL user. Used to create the database and passed to the Console as `SPRING_DB_USERNAME`. |
 | `POSTGRES_PASSWORD` | PostgreSQL password. Passed to the Console as `SPRING_DB_PASSWORD`. |
 | `JWT_SECRET_KEY` | JWT signing key, a Base64 string — `openssl rand -base64 48` |
-| `ENCRYPTION_KEY` | Encryption key for Team Keys / Node API Keys, Base64 of exactly 32 bytes — `openssl rand -base64 32` |
+| `ENCRYPTION_KEY` | Encryption key for stored Node API Keys, Base64 of exactly 32 bytes — `openssl rand -base64 32`. Member API Keys are stored as hashes and do not use it. |
 | `INFRA_ADMIN_PASSWORD` | Password of the bootstrap admin account |
 
 Important:
 
 - **The database name is fixed to `infra_mesh`.** The Console has no setting for it.
 - **`POSTGRES_USER` / `POSTGRES_PASSWORD` only take effect when the `postgres-data` volume is first created.** Changing them later does not change the existing database credentials, and the Console will fail to connect.
-- **Never change `ENCRYPTION_KEY` once set.** Stored Team Keys and Node API Keys can no longer be decrypted.
+- **Never change `ENCRYPTION_KEY` once set.** Node API Keys encrypted with the previous key can no longer be decrypted.
 - Changing `JWT_SECRET_KEY` invalidates every issued token; all users must sign in again.
 - **The bootstrap admin** is created on first start only if no account named `INFRA_ADMIN_USERNAME` exists. Changing `INFRA_ADMIN_PASSWORD` afterwards does not change that account's password.
 
@@ -43,11 +43,11 @@ Important:
 | `INFRA_ADMIN_USERNAME` | `admin` | Bootstrap admin username |
 | `INFRA_ADMIN_NICKNAME` | `admin` | Bootstrap admin nickname |
 | `INFRA_ADMIN_EMAIL` | `admin@infra-console.local` | Bootstrap admin email |
-| `INFRAMESH_SESSION_AFFINITY_ENABLED` | `false` | Enables Session Affinity on the Console. Redis is only used when this is `true` — start the stack with `--profile affinity`. Teams can then turn it on or off individually. |
+| `INFRAMESH_SESSION_AFFINITY_ENABLED` | `false` | Enables Session Affinity on the Console. Requires Redis when enabled — start the stack with `--profile affinity`. Teams can then turn it on or off individually. |
 | `INFRAMESH_SESSION_AFFINITY_TTL` | `30m` | Session Affinity TTL |
 | `WORKER_CAPACITY_MODE` | `MEMORY` | Where Worker in-flight capacity is kept, independent of Session Affinity. `MEMORY`: Console memory, no Redis, single Console only. `REDIS`: shared across Consoles — start the stack with `--profile redis`. |
 | `REDIS_PASSWORD` | (none) | Only used when Redis is used. When set, Redis requires this password and the Console uses it. Empty means no authentication. |
-| `ALLOWED_ORIGIN_PATTERNS` | `http://localhost:<INFRA_CONSOLE_PORT>` | Only needed when a frontend on a different origin calls the API |
+| `ALLOWED_ORIGIN_PATTERNS` | `http://localhost:<INFRA_CONSOLE_PORT>` | Only needed when a frontend on a different origin calls the API. Comma-separated list of origins or origin patterns. `localhost` and `127.0.0.1` are different origins; list each one you need. |
 | `JWT_EXPIRATION` | `3600000` | Access token lifetime (ms) |
 | `JWT_REFRESH_TOKEN_EXPRATION` | `1209600000` | Refresh token lifetime (ms). The spelling matches the Console setting. |
 | `NODE_OUTBOUND_REQUEST_TIMEOUT` | `60s` | How long to wait for an OUTBOUND Worker response |
@@ -55,13 +55,15 @@ Important:
 | `NODE_OUTBOUND_STREAM_IDLE_TIMEOUT` | `60s` | Maximum silence between OUTBOUND streaming chunks |
 | `NODE_REGISTRATION_TOKEN_TTL` | `10m` | Node Registration Token lifetime |
 | `WORKER_CAPACITY_INFLIGHT_TTL` | `5m` | Worker In-Flight reservation lease |
-| `INFERENCE_MAX_REQUEST_BODY_SIZE` | `10MB` | Maximum request body size of the inference APIs (invoke / stream / simple chat / OpenAI-compatible); larger requests get 413. `MB` is binary (10MB = 10 MiB); a plain number is bytes. Other APIs are not limited |
-| `AUDIT_RETENTION_ENABLED` | `true` | Deletes Audit Logs older than the retention period every day at 03:00 |
+| `INFERENCE_MAX_REQUEST_BODY_SIZE` | `10MB` | Maximum request body size of the inference APIs (invoke / stream / simple chat / OpenAI-compatible); larger requests get 413. `MB` is binary (10MB = 10 MiB); a plain number is bytes. Other APIs are not subject to this specific inference request body size limit. |
+| `AUDIT_RETENTION_ENABLED` | `true` | Deletes Audit Logs older than the retention period every day at 03:00 in the Console JVM's default timezone. The Compose configuration does not set a timezone explicitly. |
 | `AUDIT_RETENTION_DAYS` | `180` | Audit Log retention period (days, 1 or more) |
-| `AUDIT_RETENTION_BATCH_SIZE` | `1000` | Maximum Audit Log rows deleted per transaction |
-| `REQUEST_LOG_RETENTION_ENABLED` | `true` | Deletes Request Logs older than the retention period every day at 03:00 |
+| `AUDIT_RETENTION_BATCH_SIZE` | `1000` | Maximum Audit Log rows deleted per transaction. A run repeats batches until no expired rows remain (up to 1,000 batches); anything left is deleted at the next run. |
+| `REQUEST_LOG_RETENTION_ENABLED` | `true` | Deletes Request Logs older than the retention period every day at 03:00 in the Console JVM's default timezone. The Compose configuration does not set a timezone explicitly. |
 | `REQUEST_LOG_RETENTION_DAYS` | `30` | Request Log retention period (days, 1 or more) |
-| `REQUEST_LOG_RETENTION_BATCH_SIZE` | `1000` | Maximum Request Log rows deleted per transaction |
+| `REQUEST_LOG_RETENTION_BATCH_SIZE` | `1000` | Maximum Request Log rows deleted per transaction. A run repeats batches until no expired rows remain (up to 1,000 batches); anything left is deleted at the next run. |
+
+When several Consoles share the database, only one of them runs the retention cleanup at a time.
 
 ## Fixed by Compose
 

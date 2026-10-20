@@ -85,15 +85,15 @@ Each package ships with a `.sha256` checksum file. There is no Linux standalone 
    macOS:
 
    ```bash
-   shasum -a 256 -c inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
-   tar -xzf inframesh-console-0.2.1-macos-arm64.tar.gz
-   ./inframesh-console-0.2.1/bin/inframesh
+   shasum -a 256 -c inframesh-console-0.2.2-macos-arm64.tar.gz.sha256
+   tar -xzf inframesh-console-0.2.2-macos-arm64.tar.gz
+   ./inframesh-console-0.2.2/bin/inframesh
    ```
 
    Windows (after verifying the checksum and extracting the ZIP):
 
    ```bat
-   inframesh-console-0.2.1\bin\inframesh.cmd
+   inframesh-console-0.2.2\bin\inframesh.cmd
    ```
 
 3. When the Console is ready, your browser opens `http://127.0.0.1:8080`. On the first launch you create the administrator account in the browser.
@@ -153,7 +153,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 
 | Service | Image | Notes |
 | --- | --- | --- |
-| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.1}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
+| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.2}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
 | `postgres` | `postgres:16` | Database `infra_mesh`. Data persisted in the `postgres-data` volume. |
 | `redis` | `redis:7.4` | Optional, only started with `--profile affinity` or `--profile redis`. Holds Session Affinity and shared Worker Capacity state (TTL-based, no volume). |
 
@@ -172,7 +172,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 The Console image tag is set in `console/.env`:
 
 ```env
-INFRA_CONSOLE_VERSION=0.2.1
+INFRA_CONSOLE_VERSION=0.2.2
 ```
 
 The default is a pinned version so that a deployment always reproduces the same Console. `INFRA_CONSOLE_VERSION=latest` is also available if you explicitly want to track the newest release. See [Upgrading](docs/console/upgrade.md).
@@ -190,7 +190,7 @@ The address you register for a runtime depends on where the Console runs.
 | Same Docker network | `http://<service-name>:<port>` | `http://ollama:11434` |
 | Another server | IP or domain of that server | `http://192.168.x.x:11434`, `https://runtime.example.com` |
 
-The Console uses the registered address as-is; it never rewrites `localhost`. See [Connecting AI Runtimes](docs/console/installation.md#connecting-ai-runtimes).
+The Console uses the registered address as-is; it never rewrites `localhost`. See [Connecting AI Runtimes](docs/console/installation.md#connecting-ai-runtimes). To connect Ollama running on another PC, see [Ollama Remote Access](docs/console/ollama-remote-access.md).
 
 ## Data Persistence
 
@@ -238,6 +238,7 @@ See [Security](docs/console/security.md) and [HTTPS and Reverse Proxy](docs/cons
 | [Configuration](docs/console/configuration.md) | Every Docker `.env` variable |
 | [Upgrading](docs/console/upgrade.md) | Upgrading standalone and Docker deployments |
 | [Security](docs/console/security.md) | Network exposure, TLS, secrets, package integrity |
+| [Ollama Remote Access](docs/console/ollama-remote-access.md) | Connecting Ollama on another PC, network binding, troubleshooting |
 | [Releases](docs/releases.md) | Release channels, assets, checksums, versioning |
 
 ## Releases
@@ -275,7 +276,8 @@ infra-deploy
         ├── installation.md
         ├── configuration.md
         ├── upgrade.md
-        └── security.md
+        ├── security.md
+        └── ollama-remote-access.md
 ```
 
 ### Related Projects
