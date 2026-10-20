@@ -12,7 +12,7 @@ GitHub Releases of this repository are the official distribution channel for Inf
 - Standalone packages are attached to the release as **Release Assets**. They are never committed to this Git repository.
 - Each package is published together with a `.sha256` checksum file.
 - Docker images are published to the GitHub Container Registry as `ghcr.io/inframeshlabs/infra-console:<version>`.
-- Releases are versioned by Git tag (`v<version>`, for example `v0.2.1`). Package file names and Docker image tags use the same version without the `v` prefix.
+- Releases are versioned by Git tag (`v<version>`, for example `v0.2.2`). Package file names and Docker image tags use the same version without the `v` prefix.
 - A published release's assets are not replaced. Fixes are shipped as a new version.
 
 ## Release Assets

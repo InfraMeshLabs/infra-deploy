@@ -8,8 +8,8 @@ The installation directory and the data directory (`INFRAMESH_HOME`) are separat
 
 ```text
 Installation
-├── inframesh-console-0.2.0/
-└── inframesh-console-0.2.1/
+├── inframesh-console-0.2.1/
+└── inframesh-console-0.2.2/
 
 Persistent Data
 └── ~/.inframesh/
@@ -20,12 +20,14 @@ Persistent Data
 2. **Back up `INFRAMESH_HOME`** (default `~/.inframesh`, Windows `%USERPROFILE%\.inframesh`). Copy the whole directory, including `config/` and `data/`:
 
    ```bash
-   cp -Rp ~/.inframesh ~/inframesh-backup-$(date +%Y%m%d)
+   cp -Rp ~/.inframesh ~/inframesh-backup-$(date +%Y%m%d-%H%M%S)
    ```
 
    ```powershell
-   Copy-Item -Recurse "$env:USERPROFILE\.inframesh" "$env:USERPROFILE\inframesh-backup-$(Get-Date -Format yyyyMMdd)"
+   Copy-Item -Recurse "$env:USERPROFILE\.inframesh" "$env:USERPROFILE\inframesh-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
    ```
+
+   If you configured a custom `INFRAMESH_HOME`, replace `~/.inframesh` (or `$env:USERPROFILE\.inframesh`) with your data directory. The timestamp in the backup name keeps a new backup from colliding with an earlier one; if you change the name, make sure the destination does not exist yet.
 
 3. **Download the new release** and its `.sha256` file from the [Releases page](https://github.com/InfraMeshLabs/infra-deploy/releases).
 
@@ -36,11 +38,11 @@ Persistent Data
 6. **Run the new launcher with the same `INFRAMESH_HOME`.** If you use the default location, no setting is needed. If you set `INFRAMESH_HOME` before, set the same value again.
 
    ```bash
-   ./inframesh-console-0.2.1/bin/inframesh
+   ./inframesh-console-0.2.2/bin/inframesh
    ```
 
    ```bat
-   inframesh-console-0.2.1\bin\inframesh.cmd
+   inframesh-console-0.2.2\bin\inframesh.cmd
    ```
 
 7. **Check that your data is still there.** Sign in with your existing administrator account and confirm that organizations, teams and nodes are present. You should not see the Initial Administrator Setup page again; if you do, the Console is using a different (empty) `INFRAMESH_HOME`. Stop it and check the `Home:` line the launcher prints.
@@ -49,7 +51,15 @@ Persistent Data
 
 Never delete `INFRAMESH_HOME` during an upgrade. It contains the database and the secrets needed to read it.
 
-To return to the previous version: stop the Console, replace `INFRAMESH_HOME` with the backup from step 2, and run the previous version's launcher.
+To return to the previous version:
+
+1. Stop the Console completely.
+2. Move the current `INFRAMESH_HOME` to a separate location. Do not delete it.
+3. Restore the backup from step 2 to the original `INFRAMESH_HOME` location.
+4. Run the previous version's launcher.
+5. Sign in and check that your data is present.
+
+Restoring a pre-upgrade backup discards changes made after that backup. Keep the directory you moved aside in step 2 if you may need those changes later. Do not run the previous version against the upgraded data directory: after the new version's Flyway migrations have run, the older version may not support the schema.
 
 ## Docker
 
@@ -58,13 +68,17 @@ Run these commands from the `console/` directory.
 1. **Back up PostgreSQL:**
 
    ```bash
-   docker compose exec postgres sh -c 'pg_dump -U "$POSTGRES_USER" infra_mesh' > backup.sql
+   docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" infra_mesh' > backup.sql
    ```
+
+   Make sure the command finishes without errors before continuing. A failed `pg_dump` can leave an incomplete or empty `backup.sql`.
+
+   Also keep a secure copy of the `ENCRYPTION_KEY` this database uses (it is in `.env`, not in `backup.sql`). Without the original key, Node API Keys in a restored database cannot be decrypted. Store database backups and secrets securely, and do not commit them.
 
 2. **Change the version** in `console/.env`:
 
    ```env
-   INFRA_CONSOLE_VERSION=0.2.1
+   INFRA_CONSOLE_VERSION=0.2.2
    ```
 
 3. **Pull the new image and restart:**
@@ -74,32 +88,41 @@ Run these commands from the `console/` directory.
    docker compose up -d
    ```
 
-   To update only the Console and leave PostgreSQL (and Redis, if used) untouched:
+   If you run Redis, pass the same profile you started the stack with to both commands. Redis is not part of the default stack, so a command without the profile does not include it.
+
+   ```bash
+   docker compose --profile affinity pull
+   docker compose --profile affinity up -d
+   ```
+
+   Use `--profile redis` instead if that is the profile you use. If you set `COMPOSE_PROFILES` in `.env`, the profile is applied automatically and `--profile` is not needed. Starting Redis does not change any Console setting; Session Affinity and `WORKER_CAPACITY_MODE` are still controlled by `.env`.
+
+   To update only the Console image without starting or recreating its dependencies:
 
    ```bash
    docker compose pull console
-   docker compose up -d console
+   docker compose up -d --no-deps console
    ```
 
-   If you run Redis, include the same profile you started the stack with (for example `docker compose --profile affinity up -d`).
+   `--no-deps` does not start PostgreSQL or Redis. Use it only when PostgreSQL, and Redis if your configuration needs it, are already running. If a release changes the services or dependencies in `docker-compose.yml`, use the full-stack commands above instead.
 
 4. **Check health:**
 
    ```bash
-   docker compose ps                # console and postgres should be "healthy"
+   docker compose ps                # console and postgres (and redis, with a profile) should be "healthy"
    docker compose logs -f console
    ```
 
 5. **Check that your data is still there** by signing in and confirming that organizations, teams and nodes are present.
 
-Pull the latest `infra-deploy` changes first (`git pull`) when a release changes `console/docker-compose.yml` or `console/.env.example`.
+Pull the latest `infra-deploy` changes first (`git pull`) when a release changes `console/docker-compose.yml` or `console/.env.example`. Check `git status` for local changes before pulling. `.env` is not tracked by Git and is not updated by the pull: compare `.env.example` with your existing `.env`, add any newly required variables by hand, and keep your existing secrets. Never overwrite `.env` with `.env.example`.
 
 ### Version policy
 
 Two kinds of tags are published to `ghcr.io/inframeshlabs/infra-console`:
 
 ```text
-0.2.1     a specific release
+0.2.2     a specific release
 latest    the newest release
 ```
 
@@ -126,7 +149,7 @@ With `latest`, `docker compose up -d` alone keeps using the image already on dis
 - Never use `docker compose down -v` during an update; it deletes the database volume.
 - Schema changes are applied by Flyway when the new Console starts. After the schema has moved forward, rolling back to an older image may not work — restore the backup instead.
 - Keep `ENCRYPTION_KEY` and `JWT_SECRET_KEY` unchanged. See [configuration.md](configuration.md).
-- When the Console restarts, WebSocket connections from OUTBOUND nodes drop. The Node SDK reconnects automatically, but requests in flight during the restart fail.
+- When the Console restarts, WebSocket connections from OUTBOUND nodes drop. The Node SDK reconnects automatically with exponential backoff (up to 30 seconds between attempts by default) and keeps retrying until the node itself is stopped. Requests in flight during the restart fail and are not retried.
 
 ## Moving between Standalone and Docker
 

@@ -22,20 +22,22 @@ Download packages only from the official Releases page:
 
 <https://github.com/InfraMeshLabs/infra-deploy/releases>
 
-Each release provides one package per platform and a matching `.sha256` file. For v0.2.1:
+Each release provides one package per platform and a matching `.sha256` file:
 
 ```text
-inframesh-console-0.2.1-macos-arm64.tar.gz
-inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
+inframesh-console-<version>-macos-arm64.tar.gz
+inframesh-console-<version>-macos-arm64.tar.gz.sha256
 
-inframesh-console-0.2.1-macos-x64.tar.gz
-inframesh-console-0.2.1-macos-x64.tar.gz.sha256
+inframesh-console-<version>-macos-x64.tar.gz
+inframesh-console-<version>-macos-x64.tar.gz.sha256
 
-inframesh-console-0.2.1-windows-x64.zip
-inframesh-console-0.2.1-windows-x64.zip.sha256
+inframesh-console-<version>-windows-x64.zip
+inframesh-console-<version>-windows-x64.zip.sha256
 ```
 
 Download both the package and its `.sha256` file into the same directory.
+
+The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.2` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
 
 ## macOS
 
@@ -44,13 +46,15 @@ Download both the package and its `.sha256` file into the same directory.
 Run this in the directory that contains both files:
 
 ```bash
-shasum -a 256 -c inframesh-console-0.2.1-macos-arm64.tar.gz.sha256
+VERSION=0.2.2
+
+shasum -a 256 -c "inframesh-console-${VERSION}-macos-arm64.tar.gz.sha256"
 ```
 
 The output must end with `OK`:
 
 ```text
-inframesh-console-0.2.1-macos-arm64.tar.gz: OK
+inframesh-console-<version>-macos-arm64.tar.gz: OK
 ```
 
 If it reports `FAILED`, delete the download and download it again from the Releases page. Do not run a package whose checksum does not match. On Intel Macs, replace `arm64` with `x64` in the file names.
@@ -58,15 +62,15 @@ If it reports `FAILED`, delete the download and download it again from the Relea
 ### 2. Extract
 
 ```bash
-tar -xzf inframesh-console-0.2.1-macos-arm64.tar.gz
+tar -xzf "inframesh-console-${VERSION}-macos-arm64.tar.gz"
 ```
 
-This creates the `inframesh-console-0.2.1/` directory. It contains only the application; your data is stored separately (see [Data Directory](#data-directory)).
+This creates the `inframesh-console-<version>/` directory. It contains only the application; your data is stored separately (see [Data Directory](#data-directory)).
 
 ### 3. Run the launcher
 
 ```bash
-./inframesh-console-0.2.1/bin/inframesh
+"./inframesh-console-${VERSION}/bin/inframesh"
 ```
 
 The launcher prints the data directory, starts the Console, and opens your default browser once the Console is ready:
@@ -102,18 +106,20 @@ Do not disable Gatekeeper system-wide (for example with `spctl --master-disable`
 In PowerShell, in the directory that contains both files:
 
 ```powershell
+$version = "0.2.2"
+
 Get-FileHash `
-  .\inframesh-console-0.2.1-windows-x64.zip `
+  ".\inframesh-console-$version-windows-x64.zip" `
   -Algorithm SHA256
 ```
 
-Compare the printed `Hash` with the value at the start of `inframesh-console-0.2.1-windows-x64.zip.sha256` (open it in Notepad). They must be identical; letter case does not matter.
+Compare the printed `Hash` with the value at the start of `inframesh-console-<version>-windows-x64.zip.sha256` (open it in Notepad). They must be identical; letter case does not matter.
 
 To compare automatically:
 
 ```powershell
-$expected = (Get-Content .\inframesh-console-0.2.1-windows-x64.zip.sha256) -split '\s+' | Select-Object -First 1
-$actual = (Get-FileHash .\inframesh-console-0.2.1-windows-x64.zip -Algorithm SHA256).Hash
+$expected = (Get-Content ".\inframesh-console-$version-windows-x64.zip.sha256") -split '\s+' | Select-Object -First 1
+$actual = (Get-FileHash ".\inframesh-console-$version-windows-x64.zip" -Algorithm SHA256).Hash
 if ($actual -eq $expected) { 'OK' } else { 'MISMATCH - do not run this package' }
 ```
 
@@ -124,17 +130,24 @@ If the values differ, delete the download and download it again from the Release
 Extract the ZIP (right-click → **Extract All…**, or `Expand-Archive` in PowerShell):
 
 ```powershell
-Expand-Archive .\inframesh-console-0.2.1-windows-x64.zip -DestinationPath .
+Expand-Archive ".\inframesh-console-$version-windows-x64.zip" -DestinationPath .
 ```
 
-This creates the `inframesh-console-0.2.1\` directory.
+This creates the `inframesh-console-<version>\` directory.
 
 ### 3. Run the launcher
 
-From Command Prompt or PowerShell in the directory where you extracted the ZIP:
+From PowerShell in the directory where you extracted the ZIP:
+
+```powershell
+.\inframesh-console-$version\bin\inframesh.cmd
+```
+
+Or from Command Prompt:
 
 ```bat
-inframesh-console-0.2.1\bin\inframesh.cmd
+set VERSION=0.2.2
+inframesh-console-%VERSION%\bin\inframesh.cmd
 ```
 
 The launcher starts the Console and opens your default browser once it is ready. Keep the window open while you use the Console, and press `Ctrl+C` in it to stop.
@@ -180,7 +193,7 @@ http://127.0.0.1:8080
 
 If you change `SERVER_PORT`, use that port instead. The launcher detects the port the Console actually listens on and opens that address.
 
-The launcher waits up to 60 seconds for the Console to become ready. If the Console exits early (for example, because the port is already in use or another Console is using the same data directory), the launcher prints an error and exits.
+The launcher waits up to 60 seconds for the Console to become ready; if it is not ready by then, the launcher stops the Console and exits with an error. If the Console exits early (for example, because the port is already in use or another Console is using the same data directory), the launcher prints an error and exits.
 
 ## Configuration
 
@@ -197,7 +210,7 @@ The launcher takes no command-line arguments. Configure it with environment vari
 macOS:
 
 ```bash
-SERVER_PORT=9090 INFRAMESH_OPEN_BROWSER=false ./inframesh-console-0.2.1/bin/inframesh
+SERVER_PORT=9090 INFRAMESH_OPEN_BROWSER=false "./inframesh-console-${VERSION}/bin/inframesh"
 ```
 
 Windows (Command Prompt):
@@ -205,7 +218,7 @@ Windows (Command Prompt):
 ```bat
 set SERVER_PORT=9090
 set INFRAMESH_OPEN_BROWSER=false
-inframesh-console-0.2.1\bin\inframesh.cmd
+inframesh-console-%VERSION%\bin\inframesh.cmd
 ```
 
 Windows (PowerShell):
@@ -213,14 +226,28 @@ Windows (PowerShell):
 ```powershell
 $env:SERVER_PORT = '9090'
 $env:INFRAMESH_OPEN_BROWSER = 'false'
-.\inframesh-console-0.2.1\bin\inframesh.cmd
+.\inframesh-console-$version\bin\inframesh.cmd
 ```
 
 Settings can also be placed in `<INFRAMESH_HOME>/config/application.yml` (optional; it does not exist by default). Environment variables take precedence over that file.
 
 ### Redis
 
-Redis is not included in the standalone package and is not needed to run it. Features that use Redis — Session Affinity and Worker Capacity shared across several Console instances — would require a separately operated Redis server. The standalone package is designed for a single Console instance, where Worker Capacity is kept in the Console's memory.
+Redis is not bundled with the standalone package and is not required to start the Console or for basic inference. The Console connects to Redis only when a Redis-backed feature is enabled:
+
+| Feature | Redis |
+| --- | --- |
+| Basic inference | Not required |
+| Worker Capacity, `MEMORY` mode (default) | Not required |
+| Worker Capacity, `REDIS` mode (shared across several Consoles) | Required |
+| Session Affinity (disabled by default) | Required when enabled |
+
+Both features are off by default. Using them requires a separately operated Redis server; see [Redis](installation.md#redis-optional) for the settings. The standalone package is intended for a single Console instance, so the default in-memory Worker Capacity is usually sufficient.
+
+If Redis becomes unavailable while these features are enabled:
+
+- **Session Affinity:** requests are routed normally without affinity.
+- **Worker Capacity `REDIS` mode:** Workers with a concurrency limit reject requests (HTTP 429) until Redis recovers; Workers without a limit keep working. The Console still starts if Redis is unreachable at startup, but logs an error and behaves the same way.
 
 ## Data Directory
 
@@ -233,7 +260,7 @@ The extracted package directory (the **installation directory**) contains only t
 
 ```text
 Installation (replaceable)
-└── inframesh-console-0.2.1/
+└── inframesh-console-<version>/
     ├── bin/        launcher
     ├── app/        Console application
     └── runtime/    bundled Java runtime
@@ -242,26 +269,26 @@ Persistent Data (keep)
 └── ~/.inframesh/
     ├── config/     secrets.yml (generated), application.yml (optional)
     ├── data/       embedded H2 database
-    ├── logs/
+    ├── logs/       created, currently unused
     └── run/        runtime state of the running Console (port)
 ```
 
 - The H2 database in `data/` holds accounts (including the administrator), organizations, teams, nodes and all other Console data. It is kept when the Console restarts and when you upgrade the package.
-- On the first launch, the Console generates its JWT signing key and encryption key and stores them in `config/secrets.yml`. **The database and `secrets.yml` belong together**: stored Team Keys and Node API Keys can only be decrypted with that encryption key. If the database exists but `secrets.yml` is missing, the Console refuses to start rather than generating new keys.
+- On the first launch, the Console generates its JWT signing key and encryption key and stores them in `config/secrets.yml`. **The database and `secrets.yml` belong together** and must be backed up together: the encryption key is required to decrypt encrypted credentials such as Node API Keys. Member API Keys are stored as hashes and cannot be recovered from their stored values. If the database exists but `secrets.yml` is missing, the Console refuses to start rather than generating new keys.
 - Directories are created with owner-only permissions on macOS.
-- Logs are written to the terminal.
+- Logs are written to the terminal. The `logs/` directory is created but not used yet.
 
 ### Using a different data directory
 
 Set `INFRAMESH_HOME` before running the launcher:
 
 ```bash
-INFRAMESH_HOME="$HOME/inframesh-data" ./inframesh-console-0.2.1/bin/inframesh
+INFRAMESH_HOME="$HOME/inframesh-data" "./inframesh-console-${VERSION}/bin/inframesh"
 ```
 
 ```powershell
 $env:INFRAMESH_HOME = 'D:\inframesh-data'
-.\inframesh-console-0.2.1\bin\inframesh.cmd
+.\inframesh-console-$version\bin\inframesh.cmd
 ```
 
 Use the same value every time. A different `INFRAMESH_HOME` starts with an empty database.
