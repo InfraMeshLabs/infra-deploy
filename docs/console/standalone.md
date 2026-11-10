@@ -299,6 +299,65 @@ Only one Console instance can use a given `INFRAMESH_HOME` at a time. A second i
 
 ### Backup
 
+A backup must contain the database **and** `config/secrets.yml` together. The secrets decrypt the Node API Keys stored in the database; restoring one without the other leaves the Console unable to start ("The encryption key … does not match the database").
+
+#### Backup and restore commands
+
+> Available in releases after v0.2.3. On v0.2.3 and earlier, use [Copying the data directory](#copying-the-data-directory).
+
+| Task | Console running | Console stopped |
+| --- | --- | --- |
+| Back up | `POST /api/admin/backups` (administrator) | `inframesh backup [--output <file.zip>]` |
+| Restore | not possible — stop the Console first | `inframesh restore --input <file.zip> [--force]` |
+| Undo an interrupted restore | — | `inframesh recover` |
+
+A backup is one ZIP file (`manifest.json`, `data/console.mv.db`, `config/secrets.yml`). Without `--output` it is written to `INFRAMESH_HOME/backups/inframesh-backup-<yyyyMMdd-HHmmss>.zip`. An existing file is never overwritten.
+
+**Back up while the Console is running** (sign in as an administrator, then):
+
+```bash
+TOKEN=$(curl -s http://127.0.0.1:8080/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"<admin>","password":"<password>"}' | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
+curl -s -X POST http://127.0.0.1:8080/api/admin/backups -H "Authorization: Bearer $TOKEN"
+```
+
+The response contains the path of the new file on the Console's computer. The database snapshot is consistent even while the Console is in use.
+
+**Back up with the Console stopped:**
+
+```bash
+./inframesh-console-<version>/bin/inframesh backup --output ~/inframesh-backup.zip
+```
+
+```bat
+inframesh-console-<version>\bin\inframesh.cmd backup --output %USERPROFILE%\inframesh-backup.zip
+```
+
+**Restore** (the Console must be stopped):
+
+```bash
+./inframesh-console-<version>/bin/inframesh restore --input ~/inframesh-backup.zip
+```
+
+```bat
+inframesh-console-<version>\bin\inframesh.cmd restore --input %USERPROFILE%\inframesh-backup.zip
+```
+
+- The whole backup is verified first (file list, sizes, SHA-256 checksums, secrets format, database, schema version, and that the secrets decrypt the database). Nothing is changed if any check fails.
+- If `INFRAMESH_HOME` already has data, restore refuses unless you add `--force`. With `--force` the current files are **kept**, not deleted: `data/console-before-restore-<time>.mv.db` and `config/secrets-before-restore-<time>.yml`. Delete them yourself once the restored Console works.
+- `config/application.yml`, `logs/` and `run/` are not part of the backup.
+- Then start the Console and sign in to check your data.
+
+All commands refuse to run while a Console (or another backup / restore) is using the same `INFRAMESH_HOME`. Set `INFRAMESH_HOME` the same way you do for the Console if you use a custom location.
+
+**If a restore is interrupted** (power loss, killed process), the Console refuses to start and tells you to run `inframesh recover`. It puts the previous database and secrets back. If that is not possible, rename `data/*-before-restore-*.mv.db` back to `data/console.mv.db` and `config/secrets-before-restore-*.yml` back to `config/secrets.yml`, then delete `run/restore.journal`.
+
+**Versions.** A backup can be restored by the same or a newer Console; the newer Console upgrades the database when it starts. A backup from a newer Console is refused by an older one. To return to an older version, restore with the newer version's `inframesh restore`, then start the older version's launcher.
+
+**Keep backups private.** A backup contains the encryption secrets. It is created readable only by you (macOS); store it with the same care as passwords and do not share it. Backups are not encrypted by InfraMesh.
+
+#### Copying the data directory
+
 1. Stop the Console (`Ctrl+C`). Do not copy the database while the Console is running.
 2. Copy the **entire** `INFRAMESH_HOME` directory — at least `config/` and `data/` together.
 

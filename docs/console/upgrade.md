@@ -27,6 +27,8 @@ Persistent Data
    Copy-Item -Recurse "$env:USERPROFILE\.inframesh" "$env:USERPROFILE\inframesh-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
    ```
 
+   On releases after v0.2.3 you can instead run `bin/inframesh backup` (Windows: `bin\inframesh.cmd backup`) from the version you are upgrading from — see [Backup and restore commands](standalone.md#backup-and-restore-commands).
+
    If you configured a custom `INFRAMESH_HOME`, replace `~/.inframesh` (or `$env:USERPROFILE\.inframesh`) with your data directory. The timestamp in the backup name keeps a new backup from colliding with an earlier one; if you change the name, make sure the destination does not exist yet.
 
 3. **Download the new release** and its `.sha256` file from the [Releases page](https://github.com/InfraMeshLabs/infra-deploy/releases).
@@ -55,7 +57,7 @@ To return to the previous version:
 
 1. Stop the Console completely.
 2. Move the current `INFRAMESH_HOME` to a separate location. Do not delete it.
-3. Restore the backup from step 2 to the original `INFRAMESH_HOME` location.
+3. Restore the backup from step 2 to the original `INFRAMESH_HOME` location. For a backup made with `inframesh backup`, run `inframesh restore --input <file.zip> --force` with the **new** version's launcher (it keeps the current files as `*-before-restore-*`).
 4. Run the previous version's launcher.
 5. Sign in and check that your data is present.
 
