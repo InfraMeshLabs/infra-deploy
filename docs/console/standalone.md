@@ -37,7 +37,7 @@ inframesh-console-<version>-windows-x64.zip.sha256
 
 Download both the package and its `.sha256` file into the same directory.
 
-The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.2` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
+The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.4` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
 
 ## macOS
 
@@ -46,7 +46,7 @@ The commands on this page use a version variable (`VERSION` in the macOS shell a
 Run this in the directory that contains both files:
 
 ```bash
-VERSION=0.2.2
+VERSION=0.2.4
 
 shasum -a 256 -c "inframesh-console-${VERSION}-macos-arm64.tar.gz.sha256"
 ```
@@ -106,7 +106,7 @@ Do not disable Gatekeeper system-wide (for example with `spctl --master-disable`
 In PowerShell, in the directory that contains both files:
 
 ```powershell
-$version = "0.2.2"
+$version = "0.2.4"
 
 Get-FileHash `
   ".\inframesh-console-$version-windows-x64.zip" `
@@ -146,7 +146,7 @@ From PowerShell in the directory where you extracted the ZIP:
 Or from Command Prompt:
 
 ```bat
-set VERSION=0.2.2
+set VERSION=0.2.4
 inframesh-console-%VERSION%\bin\inframesh.cmd
 ```
 
@@ -205,7 +205,7 @@ The launcher takes no command-line arguments. Configure it with environment vari
 | `SERVER_PORT` | `8080` | Console HTTP port |
 | `INFRAMESH_OPEN_BROWSER` | `true` | Set to `false` to not open the browser automatically. Only `true` or `false` are accepted. |
 | `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile. Leave it at the default. |
-| `SERVER_ADDRESS` | `127.0.0.1` | Network address to listen on. See [Security](security.md#standalone) before changing it. |
+| `SERVER_ADDRESS` | `127.0.0.1` | Network address to listen on. See [Standalone Network Access](standalone-network.md) and [Security](security.md#standalone) before changing it. |
 
 macOS:
 
@@ -269,14 +269,14 @@ Persistent Data (keep)
 └── ~/.inframesh/
     ├── config/     secrets.yml (generated), application.yml (optional)
     ├── data/       embedded H2 database
-    ├── logs/       created, currently unused
+    ├── logs/       console.log (from v0.2.4)
     └── run/        runtime state of the running Console (port)
 ```
 
 - The H2 database in `data/` holds accounts (including the administrator), organizations, teams, nodes and all other Console data. It is kept when the Console restarts and when you upgrade the package.
 - On the first launch, the Console generates its JWT signing key and encryption key and stores them in `config/secrets.yml`. **The database and `secrets.yml` belong together** and must be backed up together: the encryption key is required to decrypt encrypted credentials such as Node API Keys. Member API Keys are stored as hashes and cannot be recovered from their stored values. If the database exists but `secrets.yml` is missing, the Console refuses to start rather than generating new keys.
 - Directories are created with owner-only permissions on macOS.
-- Logs are written to the terminal. The `logs/` directory is created but not used yet.
+- From v0.2.4, logs are written to the terminal and to `logs/console.log`, so they remain after the terminal is closed (v0.2.3 and earlier log to the terminal only). The log file rolls over when it reaches 10 MB or the date changes (`console.log.<yyyy-MM-dd>.<n>.gz`). Rolled files are kept for 14 days, up to 200 MB in total. These are defaults; standard Spring Boot `logging.*` settings (for example in `config/application.yml`) override them.
 
 ### Using a different data directory
 
@@ -298,6 +298,65 @@ Use the same value every time. A different `INFRAMESH_HOME` starts with an empty
 Only one Console instance can use a given `INFRAMESH_HOME` at a time. A second instance using the same directory fails to start. To run several Consoles, give each its own `INFRAMESH_HOME` and `SERVER_PORT`.
 
 ### Backup
+
+A backup must contain the database **and** `config/secrets.yml` together. The secrets decrypt the Node API Keys stored in the database; restoring one without the other leaves the Console unable to start ("The encryption key … does not match the database").
+
+#### Backup and restore commands
+
+> Available from v0.2.4. On v0.2.3 and earlier, use [Copying the data directory](#copying-the-data-directory).
+
+| Task | Console running | Console stopped |
+| --- | --- | --- |
+| Back up | `POST /api/admin/backups` (administrator) | `inframesh backup [--output <file.zip>]` |
+| Restore | not possible — stop the Console first | `inframesh restore --input <file.zip> [--force]` |
+| Undo an interrupted restore | — | `inframesh recover` |
+
+A backup is one ZIP file (`manifest.json`, `data/console.mv.db`, `config/secrets.yml`). Without `--output` it is written to `INFRAMESH_HOME/backups/inframesh-backup-<yyyyMMdd-HHmmss>.zip`. An existing file is never overwritten.
+
+**Back up while the Console is running** (sign in as an administrator, then):
+
+```bash
+TOKEN=$(curl -s http://127.0.0.1:8080/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"<admin>","password":"<password>"}' | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
+curl -s -X POST http://127.0.0.1:8080/api/admin/backups -H "Authorization: Bearer $TOKEN"
+```
+
+The response contains the path of the new file on the Console's computer. The database snapshot is consistent even while the Console is in use.
+
+**Back up with the Console stopped:**
+
+```bash
+./inframesh-console-<version>/bin/inframesh backup --output ~/inframesh-backup.zip
+```
+
+```bat
+inframesh-console-<version>\bin\inframesh.cmd backup --output %USERPROFILE%\inframesh-backup.zip
+```
+
+**Restore** (the Console must be stopped):
+
+```bash
+./inframesh-console-<version>/bin/inframesh restore --input ~/inframesh-backup.zip
+```
+
+```bat
+inframesh-console-<version>\bin\inframesh.cmd restore --input %USERPROFILE%\inframesh-backup.zip
+```
+
+- The whole backup is verified first (file list, sizes, SHA-256 checksums, secrets format, database, schema version, and that the secrets decrypt the database). Nothing is changed if any check fails.
+- If `INFRAMESH_HOME` already has data, restore refuses unless you add `--force`. With `--force` the current files are **kept**, not deleted: `data/console-before-restore-<time>.mv.db` and `config/secrets-before-restore-<time>.yml`. Delete them yourself once the restored Console works.
+- `config/application.yml`, `logs/` and `run/` are not part of the backup.
+- Then start the Console and sign in to check your data.
+
+All commands refuse to run while a Console (or another backup / restore) is using the same `INFRAMESH_HOME`. Set `INFRAMESH_HOME` the same way you do for the Console if you use a custom location.
+
+**If a restore is interrupted** (power loss, killed process), the Console refuses to start and tells you to run `inframesh recover`. It puts the previous database and secrets back. If that is not possible, rename `data/*-before-restore-*.mv.db` back to `data/console.mv.db` and `config/secrets-before-restore-*.yml` back to `config/secrets.yml`, then delete `run/restore.journal`.
+
+**Versions.** A backup can be restored by the same or a newer Console; the newer Console upgrades the database when it starts. A backup from a newer Console is refused by an older one. To return to an older version, restore with the newer version's `inframesh restore`, then start the older version's launcher.
+
+**Keep backups private.** A backup contains the encryption secrets. It is created readable only by you (macOS); store it with the same care as passwords and do not share it. Backups are not encrypted by InfraMesh.
+
+#### Copying the data directory
 
 1. Stop the Console (`Ctrl+C`). Do not copy the database while the Console is running.
 2. Copy the **entire** `INFRAMESH_HOME` directory — at least `config/` and `data/` together.
@@ -323,8 +382,7 @@ Extract each new release into a new directory and run it with the same `INFRAMES
 - The packages are not code-signed, and the macOS packages are not notarized.
 - No Linux standalone package.
 - One Console instance per `INFRAMESH_HOME`.
-- No built-in TLS. See [Security](security.md).
-- Logs are written to the terminal only.
+- No built-in TLS. See [Standalone Network Access](standalone-network.md) and [Security](security.md).
 
 ## Uninstalling
 

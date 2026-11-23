@@ -8,8 +8,8 @@ The installation directory and the data directory (`INFRAMESH_HOME`) are separat
 
 ```text
 Installation
-├── inframesh-console-0.2.1/
-└── inframesh-console-0.2.2/
+├── inframesh-console-0.2.3/
+└── inframesh-console-0.2.4/
 
 Persistent Data
 └── ~/.inframesh/
@@ -27,6 +27,8 @@ Persistent Data
    Copy-Item -Recurse "$env:USERPROFILE\.inframesh" "$env:USERPROFILE\inframesh-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
    ```
 
+   From v0.2.4 you can instead run `bin/inframesh backup` (Windows: `bin\inframesh.cmd backup`) from the version you are upgrading from — see [Backup and restore commands](standalone.md#backup-and-restore-commands).
+
    If you configured a custom `INFRAMESH_HOME`, replace `~/.inframesh` (or `$env:USERPROFILE\.inframesh`) with your data directory. The timestamp in the backup name keeps a new backup from colliding with an earlier one; if you change the name, make sure the destination does not exist yet.
 
 3. **Download the new release** and its `.sha256` file from the [Releases page](https://github.com/InfraMeshLabs/infra-deploy/releases).
@@ -38,11 +40,11 @@ Persistent Data
 6. **Run the new launcher with the same `INFRAMESH_HOME`.** If you use the default location, no setting is needed. If you set `INFRAMESH_HOME` before, set the same value again.
 
    ```bash
-   ./inframesh-console-0.2.2/bin/inframesh
+   ./inframesh-console-0.2.4/bin/inframesh
    ```
 
    ```bat
-   inframesh-console-0.2.2\bin\inframesh.cmd
+   inframesh-console-0.2.4\bin\inframesh.cmd
    ```
 
 7. **Check that your data is still there.** Sign in with your existing administrator account and confirm that organizations, teams and nodes are present. You should not see the Initial Administrator Setup page again; if you do, the Console is using a different (empty) `INFRAMESH_HOME`. Stop it and check the `Home:` line the launcher prints.
@@ -55,7 +57,7 @@ To return to the previous version:
 
 1. Stop the Console completely.
 2. Move the current `INFRAMESH_HOME` to a separate location. Do not delete it.
-3. Restore the backup from step 2 to the original `INFRAMESH_HOME` location.
+3. Restore the backup from step 2 to the original `INFRAMESH_HOME` location. For a backup made with `inframesh backup`, run `inframesh restore --input <file.zip> --force` with the **new** version's launcher (it keeps the current files as `*-before-restore-*`).
 4. Run the previous version's launcher.
 5. Sign in and check that your data is present.
 
@@ -78,7 +80,7 @@ Run these commands from the `console/` directory.
 2. **Change the version** in `console/.env`:
 
    ```env
-   INFRA_CONSOLE_VERSION=0.2.2
+   INFRA_CONSOLE_VERSION=0.2.4
    ```
 
 3. **Pull the new image and restart:**
@@ -122,7 +124,7 @@ Pull the latest `infra-deploy` changes first (`git pull`) when a release changes
 Two kinds of tags are published to `ghcr.io/inframeshlabs/infra-console`:
 
 ```text
-0.2.2     a specific release
+0.2.4     a specific release
 latest    the newest release
 ```
 

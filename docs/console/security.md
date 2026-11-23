@@ -20,6 +20,7 @@ Needing remote access does not mean you have to change `SERVER_ADDRESS`:
 
 - For private remote access from your own devices or a small private group, keep the default address and use [Tailscale Serve](#private-remote-access-with-tailscale).
 - For servers that expose the Console to other users or networks, prefer the [Docker deployment](installation.md) behind a reverse proxy; at minimum, put TLS, a firewall and network access controls in front of it.
+- To reach the standalone Console from other PCs or to connect OUTBOUND nodes running elsewhere, follow [Standalone Network Access](standalone-network.md): LAN / VPN binding, a TLS reverse proxy (with an Nginx example), firewall rules and node settings.
 
 ```text
 Standalone
@@ -216,7 +217,7 @@ If a credential is exposed:
 
 ## Package Integrity
 
-Current limitations of the v0.2.2 standalone packages:
+Current limitations of the v0.2.4 standalone packages:
 
 - macOS packages are not code-signed.
 - macOS packages are not notarized.
