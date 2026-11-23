@@ -217,7 +217,7 @@ If a credential is exposed:
 
 ## Package Integrity
 
-Current limitations of the v0.2.2 standalone packages:
+Current limitations of the v0.2.4 standalone packages:
 
 - macOS packages are not code-signed.
 - macOS packages are not notarized.

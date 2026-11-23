@@ -37,7 +37,7 @@ inframesh-console-<version>-windows-x64.zip.sha256
 
 Download both the package and its `.sha256` file into the same directory.
 
-The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.2` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
+The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.4` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
 
 ## macOS
 
@@ -46,7 +46,7 @@ The commands on this page use a version variable (`VERSION` in the macOS shell a
 Run this in the directory that contains both files:
 
 ```bash
-VERSION=0.2.2
+VERSION=0.2.4
 
 shasum -a 256 -c "inframesh-console-${VERSION}-macos-arm64.tar.gz.sha256"
 ```
@@ -106,7 +106,7 @@ Do not disable Gatekeeper system-wide (for example with `spctl --master-disable`
 In PowerShell, in the directory that contains both files:
 
 ```powershell
-$version = "0.2.2"
+$version = "0.2.4"
 
 Get-FileHash `
   ".\inframesh-console-$version-windows-x64.zip" `
@@ -146,7 +146,7 @@ From PowerShell in the directory where you extracted the ZIP:
 Or from Command Prompt:
 
 ```bat
-set VERSION=0.2.2
+set VERSION=0.2.4
 inframesh-console-%VERSION%\bin\inframesh.cmd
 ```
 
@@ -269,14 +269,14 @@ Persistent Data (keep)
 └── ~/.inframesh/
     ├── config/     secrets.yml (generated), application.yml (optional)
     ├── data/       embedded H2 database
-    ├── logs/       created, currently unused
+    ├── logs/       console.log (from v0.2.4)
     └── run/        runtime state of the running Console (port)
 ```
 
 - The H2 database in `data/` holds accounts (including the administrator), organizations, teams, nodes and all other Console data. It is kept when the Console restarts and when you upgrade the package.
 - On the first launch, the Console generates its JWT signing key and encryption key and stores them in `config/secrets.yml`. **The database and `secrets.yml` belong together** and must be backed up together: the encryption key is required to decrypt encrypted credentials such as Node API Keys. Member API Keys are stored as hashes and cannot be recovered from their stored values. If the database exists but `secrets.yml` is missing, the Console refuses to start rather than generating new keys.
 - Directories are created with owner-only permissions on macOS.
-- Logs are written to the terminal. The `logs/` directory is created but not used yet.
+- From v0.2.4, logs are written to the terminal and to `logs/console.log`, so they remain after the terminal is closed (v0.2.3 and earlier log to the terminal only). The log file rolls over when it reaches 10 MB or the date changes (`console.log.<yyyy-MM-dd>.<n>.gz`). Rolled files are kept for 14 days, up to 200 MB in total. These are defaults; standard Spring Boot `logging.*` settings (for example in `config/application.yml`) override them.
 
 ### Using a different data directory
 
@@ -303,7 +303,7 @@ A backup must contain the database **and** `config/secrets.yml` together. The se
 
 #### Backup and restore commands
 
-> Available in releases after v0.2.3. On v0.2.3 and earlier, use [Copying the data directory](#copying-the-data-directory).
+> Available from v0.2.4. On v0.2.3 and earlier, use [Copying the data directory](#copying-the-data-directory).
 
 | Task | Console running | Console stopped |
 | --- | --- | --- |
@@ -383,7 +383,6 @@ Extract each new release into a new directory and run it with the same `INFRAMES
 - No Linux standalone package.
 - One Console instance per `INFRAMESH_HOME`.
 - No built-in TLS. See [Standalone Network Access](standalone-network.md) and [Security](security.md).
-- Logs are written to the terminal only.
 
 ## Uninstalling
 
