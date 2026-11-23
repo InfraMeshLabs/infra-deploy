@@ -227,7 +227,7 @@ Nginx / Caddy / Traefik / Load Balancer
 InfraMesh Console :8080
 ```
 
-See [Security](docs/console/security.md) and [HTTPS and Reverse Proxy](docs/console/installation.md#https-and-reverse-proxy).
+See [Security](docs/console/security.md) and [HTTPS and Reverse Proxy](docs/console/installation.md#https-and-reverse-proxy). For the standalone package, see [Standalone Network Access](docs/console/standalone-network.md).
 
 ## Documentation
 
@@ -238,6 +238,7 @@ See [Security](docs/console/security.md) and [HTTPS and Reverse Proxy](docs/cons
 | [Configuration](docs/console/configuration.md) | Every Docker `.env` variable |
 | [Upgrading](docs/console/upgrade.md) | Upgrading standalone and Docker deployments |
 | [Security](docs/console/security.md) | Network exposure, TLS, secrets, package integrity |
+| [Standalone Network Access](docs/console/standalone-network.md) | Exposing the standalone Console to other PCs: LAN / VPN, TLS reverse proxy, firewall, remote OUTBOUND nodes |
 | [Ollama Remote Access](docs/console/ollama-remote-access.md) | Connecting Ollama on another PC, network binding, troubleshooting |
 | [Releases](docs/releases.md) | Release channels, assets, checksums, versioning |
 

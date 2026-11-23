@@ -205,7 +205,7 @@ The launcher takes no command-line arguments. Configure it with environment vari
 | `SERVER_PORT` | `8080` | Console HTTP port |
 | `INFRAMESH_OPEN_BROWSER` | `true` | Set to `false` to not open the browser automatically. Only `true` or `false` are accepted. |
 | `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile. Leave it at the default. |
-| `SERVER_ADDRESS` | `127.0.0.1` | Network address to listen on. See [Security](security.md#standalone) before changing it. |
+| `SERVER_ADDRESS` | `127.0.0.1` | Network address to listen on. See [Standalone Network Access](standalone-network.md) and [Security](security.md#standalone) before changing it. |
 
 macOS:
 
@@ -382,7 +382,7 @@ Extract each new release into a new directory and run it with the same `INFRAMES
 - The packages are not code-signed, and the macOS packages are not notarized.
 - No Linux standalone package.
 - One Console instance per `INFRAMESH_HOME`.
-- No built-in TLS. See [Security](security.md).
+- No built-in TLS. See [Standalone Network Access](standalone-network.md) and [Security](security.md).
 - Logs are written to the terminal only.
 
 ## Uninstalling
