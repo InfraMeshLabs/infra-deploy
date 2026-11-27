@@ -32,7 +32,7 @@ Complete these steps on the PC itself, while the Console still listens on `127.0
 
 1. **Create the administrator account.** Initial Setup is accepted only from the PC running the Console, over a direct loopback connection. It is rejected (`SETUP_LOOPBACK_ONLY`) when the request comes from another host or through a reverse proxy, and loopback is not reachable at all once the Console is bound to a specific non-loopback address.
 2. Use a strong administrator password. Anyone who can reach the Console can try to sign in.
-3. Back up `INFRAMESH_HOME` (see [Backup](standalone.md#backup)).
+3. Back up the PostgreSQL database and `INFRAMESH_HOME/config/` (see [Backup and Restore](standalone.md#backup-and-restore)).
 
 ## LAN / VPN Access
 

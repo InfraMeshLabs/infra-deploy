@@ -1,8 +1,12 @@
 # Standalone Installation
 
-The Standalone Distribution runs InfraMesh Console directly on a local PC. Each package bundles a Java runtime and uses an embedded H2 file database, so Java, Docker, PostgreSQL and Redis do not need to be installed.
+The Standalone Distribution runs InfraMesh Console directly on a local PC. Each package bundles a Java runtime, so Java and Docker do not need to be installed.
 
-The Standalone Distribution is available from Console v0.2.0. It is an additional deployment option; the [Docker deployment](installation.md) remains available and is recommended for servers and Linux.
+From Console v0.3.0 the Console stores its data in **PostgreSQL**, for the Standalone Distribution as well as for Docker. The package does not include PostgreSQL: prepare a PostgreSQL database before the first start (see [PostgreSQL](#postgresql)). Redis is not required.
+
+> **Upgrading from v0.2.4 or earlier?** Those versions stored their data in an embedded H2 file. v0.3.0 does not start on that file. Follow [Upgrading a Standalone installation from v0.2.x](upgrade.md#standalone-from-v02x-h2-to-v030) to move the data to PostgreSQL. The rest of this page describes v0.3.0 and later.
+
+The [Docker deployment](installation.md) remains available and is recommended for servers and Linux.
 
 ## Supported Platforms
 
@@ -15,6 +19,28 @@ The Standalone Distribution is available from Console v0.2.0. It is an additiona
 There is no Linux standalone package. Use the [Docker deployment](installation.md) on Linux.
 
 Pick the macOS package that matches your CPU. To check it, run `uname -m` in Terminal: `arm64` means Apple Silicon, `x86_64` means Intel.
+
+## PostgreSQL
+
+The Console needs one PostgreSQL database that it uses only for itself. The Console does not install PostgreSQL and does not create databases or accounts.
+
+| PostgreSQL version | Console behaviour |
+| --- | --- |
+| 16 | Verified version. |
+| 13 – 15 | Accepted with a warning: older than the verified version. |
+| 17 and later | Accepted with a notice: newer than the verified version. |
+| 12 and earlier | Refused. |
+
+Install PostgreSQL 16 with the method you prefer (for example the installers from [postgresql.org](https://www.postgresql.org/download/)) or use an existing PostgreSQL server. Then create a user and an empty database owned by that user, for example with `psql` as a PostgreSQL administrator:
+
+```sql
+CREATE ROLE infra_mesh LOGIN PASSWORD '<choose a password>';
+CREATE DATABASE infra_mesh OWNER infra_mesh ENCODING 'UTF8';
+```
+
+- The user only needs to own the database. A superuser is not required.
+- The database must be used only by InfraMesh Console. A database that contains another application's tables is refused.
+- For PostgreSQL on another machine, use TLS (`verify-full` is recommended in the setup screen).
 
 ## Download
 
@@ -37,7 +63,7 @@ inframesh-console-<version>-windows-x64.zip.sha256
 
 Download both the package and its `.sha256` file into the same directory.
 
-The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.2.4` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
+The commands on this page use a version variable (`VERSION` in the macOS shell and Command Prompt, `$version` in PowerShell). The value `0.3.0` in the examples is only an example: set it to the release you downloaded. The variable lasts only for the current terminal session; set it again in a new terminal.
 
 ## macOS
 
@@ -46,7 +72,7 @@ The commands on this page use a version variable (`VERSION` in the macOS shell a
 Run this in the directory that contains both files:
 
 ```bash
-VERSION=0.2.4
+VERSION=0.3.0
 
 shasum -a 256 -c "inframesh-console-${VERSION}-macos-arm64.tar.gz.sha256"
 ```
@@ -65,7 +91,7 @@ If it reports `FAILED`, delete the download and download it again from the Relea
 tar -xzf "inframesh-console-${VERSION}-macos-arm64.tar.gz"
 ```
 
-This creates the `inframesh-console-<version>/` directory. It contains only the application; your data is stored separately (see [Data Directory](#data-directory)).
+This creates the `inframesh-console-<version>/` directory. It contains only the application; your settings are stored separately (see [Data Directory](#data-directory)).
 
 ### 3. Run the launcher
 
@@ -73,19 +99,7 @@ This creates the `inframesh-console-<version>/` directory. It contains only the 
 "./inframesh-console-${VERSION}/bin/inframesh"
 ```
 
-The launcher prints the data directory, starts the Console, and opens your default browser once the Console is ready:
-
-```text
-InfraMesh Console
-Home: /Users/<you>/.inframesh
-
-Starting...
-
-InfraMesh Console is ready:
-http://127.0.0.1:8080
-```
-
-Keep the terminal open while you use the Console. Press `Ctrl+C` in that terminal to stop it.
+Keep the terminal open while you use the Console. Press `Ctrl+C` in that terminal to stop it. The first start continues in the browser; see [First Run](#first-run).
 
 ### Gatekeeper
 
@@ -106,7 +120,7 @@ Do not disable Gatekeeper system-wide (for example with `spctl --master-disable`
 In PowerShell, in the directory that contains both files:
 
 ```powershell
-$version = "0.2.4"
+$version = "0.3.0"
 
 Get-FileHash `
   ".\inframesh-console-$version-windows-x64.zip" `
@@ -146,11 +160,11 @@ From PowerShell in the directory where you extracted the ZIP:
 Or from Command Prompt:
 
 ```bat
-set VERSION=0.2.4
+set VERSION=0.3.0
 inframesh-console-%VERSION%\bin\inframesh.cmd
 ```
 
-The launcher starts the Console and opens your default browser once it is ready. Keep the window open while you use the Console, and press `Ctrl+C` in it to stop.
+Keep the window open while you use the Console, and press `Ctrl+C` in it to stop.
 
 - Administrator privileges are not required for normal use.
 - You do not need to change the PowerShell execution policy. The launcher applies its policy only to its own process.
@@ -165,43 +179,75 @@ The Windows package is **not code-signed** yet. Windows SmartScreen or your anti
 Run the launcher
     │
     ▼
-Initialize INFRAMESH_HOME (directories, generated secrets)
+No PostgreSQL connection stored yet
     │
     ▼
-Initialize the embedded H2 database
-    │
+Database connection setup page (opened in the default browser)
+    │   Test connection → Save and start
     ▼
-Start InfraMesh Console
-    │
-    ▼
-Wait until the Console reports ready
-    │
-    ▼
-Open the default browser
+Console creates its tables in the empty database and starts
     │
     ▼
 Initial Administrator Setup
 ```
 
-On the first launch, the browser shows the **Initial Administrator Setup** page. Create the administrator account there; it is stored in the data directory and kept across restarts and upgrades.
-
-The default address is:
+On the first start the launcher prints:
 
 ```text
+InfraMesh Console
+Home: /Users/<you>/.inframesh
+
+Starting...
+Database setup: the PostgreSQL connection has to be entered or checked before the Console can start.
+Open this file in a browser on this computer to continue:
+/Users/<you>/.inframesh/run/database-setup.html
+```
+
+and opens that file in your default browser (set `INFRAMESH_OPEN_BROWSER=false` to open it yourself). The file contains a one-time link to the **Database connection setup** page. The page is available only on this PC (`127.0.0.1`).
+
+1. Enter host, port, database name, user name, password and SSL mode of the database you prepared.
+2. Choose **Test connection**. The test checks that PostgreSQL is reachable, the login, the PostgreSQL version, the permissions and whether the database is empty or an existing InfraMesh database. It does not change the database.
+3. Choose **Save and start**. The connection is saved, the Console creates its tables and starts.
+4. The browser then shows the **Initial Administrator Setup** page. Create the administrator account there.
+
+From then on the launcher starts the Console directly with the saved connection and prints:
+
+```text
+InfraMesh Console is ready:
 http://127.0.0.1:8080
 ```
 
 If you change `SERVER_PORT`, use that port instead. The launcher detects the port the Console actually listens on and opens that address.
 
-The launcher waits up to 60 seconds for the Console to become ready; if it is not ready by then, the launcher stops the Console and exits with an error. If the Console exits early (for example, because the port is already in use or another Console is using the same data directory), the launcher prints an error and exits.
+The launcher waits up to 60 seconds for the Console to become ready (it does not time out while the setup page is open). If the Console exits early (for example, because the port is already in use or another Console is using the same data directory), the launcher prints an error and exits.
+
+Initial Administrator Setup is accepted only from the PC running the Console over a direct loopback connection. Create the administrator before you change `SERVER_ADDRESS` (see [Standalone Network Access](standalone-network.md)).
+
+### If PostgreSQL is not available at startup
+
+If the saved database cannot be used when the Console starts (for example, PostgreSQL is stopped or the password was changed), the Console does not start and the launcher opens the setup page again in **recovery** mode, with the cause. Fix the cause and choose **Try again with the stored settings**, or correct the connection details and save them. The Console never falls back to another database.
+
+### Changing the database connection
+
+Stop the Console and run:
+
+```bash
+"./inframesh-console-${VERSION}/bin/inframesh" db-config
+```
+
+```bat
+inframesh-console-%VERSION%\bin\inframesh.cmd db-config
+```
+
+The setup page opens with the stored connection. Changing the connection does not move data: if you switch to another database, the data of the current database stays where it is. The stored password is never shown and is not sent to a different host or over a weaker SSL mode.
 
 ## Configuration
 
-The launcher takes no command-line arguments. Configure it with environment variables:
+Configure the launcher with environment variables:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `INFRAMESH_HOME` | `~/.inframesh` (macOS)<br>`%USERPROFILE%\.inframesh` (Windows) | Data and configuration directory |
+| `INFRAMESH_HOME` | `~/.inframesh` (macOS)<br>`%USERPROFILE%\.inframesh` (Windows) | Settings and log directory |
 | `SERVER_PORT` | `8080` | Console HTTP port |
 | `INFRAMESH_OPEN_BROWSER` | `true` | Set to `false` to not open the browser automatically. Only `true` or `false` are accepted. |
 | `SPRING_PROFILES_ACTIVE` | `prod` | Spring profile. Leave it at the default. |
@@ -231,6 +277,21 @@ $env:INFRAMESH_OPEN_BROWSER = 'false'
 
 Settings can also be placed in `<INFRAMESH_HOME>/config/application.yml` (optional; it does not exist by default). Environment variables take precedence over that file.
 
+### Giving the database connection without the setup page
+
+Instead of the setup page you can give the connection explicitly, for example for unattended starts:
+
+| Variable | Description |
+| --- | --- |
+| `SPRING_DB_HOST` / `SPRING_DB_PORT` | PostgreSQL host and port (default port `5432`). The database name is `infra_mesh`. |
+| `SPRING_DB_USERNAME` / `SPRING_DB_PASSWORD` | PostgreSQL user and password |
+| `SPRING_DATASOURCE_URL` | Full JDBC URL (`jdbc:postgresql://<host>:<port>/<database>`), for another database name or JDBC options. Use with `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`. |
+| `JWT_SECRET_KEY` / `ENCRYPTION_KEY` | Required together with an explicit connection, unless the data directory already holds the secrets (`config/standalone.yml` or `config/secrets.yml`). |
+
+- Explicit values take precedence over the stored connection. Giving only part of them is refused.
+- With an explicit connection, a failed connection stops the Console with an error instead of opening the setup page.
+- Only PostgreSQL is accepted. An H2 JDBC URL or `INFRAMESH_DATABASE_MODE=embedded` is refused at startup.
+
 ### Redis
 
 Redis is not bundled with the standalone package and is not required to start the Console or for basic inference. The Console connects to Redis only when a Redis-backed feature is enabled:
@@ -251,7 +312,7 @@ If Redis becomes unavailable while these features are enabled:
 
 ## Data Directory
 
-The extracted package directory (the **installation directory**) contains only the application. All persistent data is stored in a separate **data directory**, `INFRAMESH_HOME`:
+The extracted package directory (the **installation directory**) contains only the application. Accounts, organizations, teams, nodes and logs of requests are stored in **PostgreSQL**. The Console's own settings are stored in a separate **data directory**, `INFRAMESH_HOME`:
 
 | OS | Default |
 | --- | --- |
@@ -265,18 +326,24 @@ Installation (replaceable)
     ├── app/        Console application
     └── runtime/    bundled Java runtime
 
-Persistent Data (keep)
+Settings (keep)
 └── ~/.inframesh/
-    ├── config/     secrets.yml (generated), application.yml (optional)
-    ├── data/       embedded H2 database
-    ├── logs/       console.log (from v0.2.4)
-    └── run/        runtime state of the running Console (port)
+    ├── config/     standalone.yml (database connection and generated secrets)
+    │               application.yml (optional)
+    ├── data/       empty (database files of v0.2.4 or earlier, if any)
+    ├── logs/       console.log
+    └── run/        runtime state of the running Console (port, setup page)
+
+Data (keep)
+└── PostgreSQL database
 ```
 
-- The H2 database in `data/` holds accounts (including the administrator), organizations, teams, nodes and all other Console data. It is kept when the Console restarts and when you upgrade the package.
-- On the first launch, the Console generates its JWT signing key and encryption key and stores them in `config/secrets.yml`. **The database and `secrets.yml` belong together** and must be backed up together: the encryption key is required to decrypt encrypted credentials such as Node API Keys. Member API Keys are stored as hashes and cannot be recovered from their stored values. If the database exists but `secrets.yml` is missing, the Console refuses to start rather than generating new keys.
+- `config/standalone.yml` holds the PostgreSQL connection **including its password**, and the JWT signing key and encryption key the Console generated on the first start with a new database. The file is created with owner-only permissions; it is **not encrypted**. Change the connection only with `inframesh db-config`.
+- **The encryption key belongs to the database.** It decrypts the Node API Keys stored in the database. Back up `config/standalone.yml` together with the database. A database restored without its key cannot be used: the Console refuses to start rather than generating a new key. Member API Keys are stored as hashes and cannot be recovered from their stored values.
+- Installations that were moved from v0.2.4 or earlier keep their secrets in `config/secrets.yml`. Keep that file; it is still used.
 - Directories are created with owner-only permissions on macOS.
-- From v0.2.4, logs are written to the terminal and to `logs/console.log`, so they remain after the terminal is closed (v0.2.3 and earlier log to the terminal only). The log file rolls over when it reaches 10 MB or the date changes (`console.log.<yyyy-MM-dd>.<n>.gz`). Rolled files are kept for 14 days, up to 200 MB in total. These are defaults; standard Spring Boot `logging.*` settings (for example in `config/application.yml`) override them.
+- Logs are written to the terminal and to `logs/console.log`. The log file rolls over when it reaches 10 MB or the date changes (`console.log.<yyyy-MM-dd>.<n>.gz`). Rolled files are kept for 14 days, up to 200 MB in total. These are defaults; standard Spring Boot `logging.*` settings (for example in `config/application.yml`) override them.
+- The Console does not create database files in `INFRAMESH_HOME`. `data/` stays empty unless v0.2.4 or earlier stored its H2 database there; `backups/` exists only if an earlier version created H2 backups. The Console does not open, change or delete those files.
 
 ### Using a different data directory
 
@@ -291,87 +358,39 @@ $env:INFRAMESH_HOME = 'D:\inframesh-data'
 .\inframesh-console-$version\bin\inframesh.cmd
 ```
 
-Use the same value every time. A different `INFRAMESH_HOME` starts with an empty database.
+Use the same value every time. A different `INFRAMESH_HOME` has no stored connection and opens the setup page again.
 
 ### One Console per data directory
 
-Only one Console instance can use a given `INFRAMESH_HOME` at a time. A second instance using the same directory fails to start. To run several Consoles, give each its own `INFRAMESH_HOME` and `SERVER_PORT`.
+Only one Console instance can use a given `INFRAMESH_HOME` at a time. A second instance using the same directory fails to start. To run several Consoles, give each its own `INFRAMESH_HOME`, `SERVER_PORT` and database.
 
-### Backup
+## Backup and Restore
 
-A backup must contain the database **and** `config/secrets.yml` together. The secrets decrypt the Node API Keys stored in the database; restoring one without the other leaves the Console unable to start ("The encryption key … does not match the database").
+A complete backup has two parts:
 
-#### Backup and restore commands
+| Part | How |
+| --- | --- |
+| The PostgreSQL database | PostgreSQL tools, for example `pg_dump` / `pg_restore`. The Console does not back up or restore PostgreSQL. |
+| `INFRAMESH_HOME/config/` | Copy `standalone.yml` (and `secrets.yml` if it exists) while the Console is stopped. |
 
-> Available from v0.2.4. On v0.2.3 and earlier, use [Copying the data directory](#copying-the-data-directory).
-
-| Task | Console running | Console stopped |
-| --- | --- | --- |
-| Back up | `POST /api/admin/backups` (administrator) | `inframesh backup [--output <file.zip>]` |
-| Restore | not possible — stop the Console first | `inframesh restore --input <file.zip> [--force]` |
-| Undo an interrupted restore | — | `inframesh recover` |
-
-A backup is one ZIP file (`manifest.json`, `data/console.mv.db`, `config/secrets.yml`). Without `--output` it is written to `INFRAMESH_HOME/backups/inframesh-backup-<yyyyMMdd-HHmmss>.zip`. An existing file is never overwritten.
-
-**Back up while the Console is running** (sign in as an administrator, then):
+Example with `pg_dump` (custom format):
 
 ```bash
-TOKEN=$(curl -s http://127.0.0.1:8080/api/auth/login -H 'Content-Type: application/json' \
-  -d '{"username":"<admin>","password":"<password>"}' | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
-curl -s -X POST http://127.0.0.1:8080/api/admin/backups -H "Authorization: Bearer $TOKEN"
+pg_dump -h <host> -U infra_mesh -d infra_mesh -Fc -f inframesh-$(date +%Y%m%d).dump
+cp -p ~/.inframesh/config/standalone.yml ~/inframesh-standalone-$(date +%Y%m%d).yml
 ```
 
-The response contains the path of the new file on the Console's computer. The database snapshot is consistent even while the Console is in use.
-
-**Back up with the Console stopped:**
+To restore, create an empty database, restore the dump into it **before** the Console starts against it, and put the matching `config/standalone.yml` (or `config/secrets.yml`) back:
 
 ```bash
-./inframesh-console-<version>/bin/inframesh backup --output ~/inframesh-backup.zip
+pg_restore -h <host> -U infra_mesh -d infra_mesh --no-owner inframesh-20260101.dump
 ```
 
-```bat
-inframesh-console-<version>\bin\inframesh.cmd backup --output %USERPROFILE%\inframesh-backup.zip
-```
+- Make sure `pg_dump` finishes without errors. A failed dump can leave an incomplete file.
+- Keep the dump and the settings files private. The dump contains account data and encrypted keys, and the settings files contain the database password and the encryption key.
+- Do not use `--no-comments`: it drops the record that a database was migrated from H2 (relevant only for databases moved from v0.2.x).
 
-**Restore** (the Console must be stopped):
-
-```bash
-./inframesh-console-<version>/bin/inframesh restore --input ~/inframesh-backup.zip
-```
-
-```bat
-inframesh-console-<version>\bin\inframesh.cmd restore --input %USERPROFILE%\inframesh-backup.zip
-```
-
-- The whole backup is verified first (file list, sizes, SHA-256 checksums, secrets format, database, schema version, and that the secrets decrypt the database). Nothing is changed if any check fails.
-- If `INFRAMESH_HOME` already has data, restore refuses unless you add `--force`. With `--force` the current files are **kept**, not deleted: `data/console-before-restore-<time>.mv.db` and `config/secrets-before-restore-<time>.yml`. Delete them yourself once the restored Console works.
-- `config/application.yml`, `logs/` and `run/` are not part of the backup.
-- Then start the Console and sign in to check your data.
-
-All commands refuse to run while a Console (or another backup / restore) is using the same `INFRAMESH_HOME`. Set `INFRAMESH_HOME` the same way you do for the Console if you use a custom location.
-
-**If a restore is interrupted** (power loss, killed process), the Console refuses to start and tells you to run `inframesh recover`. It puts the previous database and secrets back. If that is not possible, rename `data/*-before-restore-*.mv.db` back to `data/console.mv.db` and `config/secrets-before-restore-*.yml` back to `config/secrets.yml`, then delete `run/restore.journal`.
-
-**Versions.** A backup can be restored by the same or a newer Console; the newer Console upgrades the database when it starts. A backup from a newer Console is refused by an older one. To return to an older version, restore with the newer version's `inframesh restore`, then start the older version's launcher.
-
-**Keep backups private.** A backup contains the encryption secrets. It is created readable only by you (macOS); store it with the same care as passwords and do not share it. Backups are not encrypted by InfraMesh.
-
-#### Copying the data directory
-
-1. Stop the Console (`Ctrl+C`). Do not copy the database while the Console is running.
-2. Copy the **entire** `INFRAMESH_HOME` directory — at least `config/` and `data/` together.
-
-```bash
-cp -Rp ~/.inframesh ~/inframesh-backup-$(date +%Y%m%d)
-```
-
-```powershell
-Copy-Item -Recurse "$env:USERPROFILE\.inframesh" "$env:USERPROFILE\inframesh-backup-$(Get-Date -Format yyyyMMdd)"
-```
-
-- A backup contains secrets (`secrets.yml`) and the database. Store it with the same care as passwords.
-- Restoring `data/` without the matching `config/secrets.yml` (or with one from a different installation) leaves the Console unable to start or unable to decrypt stored keys.
-- To restore, stop the Console and replace the `INFRAMESH_HOME` directory with the backup.
+`inframesh backup` was removed in v0.3.0. It changes nothing and exits with code `1` and an explanation. `inframesh restore` and `inframesh recover` remain only to restore H2 backups made by v0.2.4 or earlier for migration — see [Upgrading](upgrade.md#standalone-from-v02x-h2-to-v030).
 
 ## Upgrading
 
@@ -381,6 +400,8 @@ Extract each new release into a new directory and run it with the same `INFRAMES
 
 - The packages are not code-signed, and the macOS packages are not notarized.
 - No Linux standalone package.
+- PostgreSQL is not bundled and is not installed by the Console.
+- Only PostgreSQL 16 is a verified version.
 - One Console instance per `INFRAMESH_HOME`.
 - No built-in TLS. See [Standalone Network Access](standalone-network.md) and [Security](security.md).
 
@@ -388,4 +409,4 @@ Extract each new release into a new directory and run it with the same `INFRAMES
 
 1. Stop the Console.
 2. Delete the extracted `inframesh-console-<version>` directory.
-3. Only if you no longer need any data, delete `INFRAMESH_HOME`. This permanently deletes the database, accounts and secrets.
+3. Only if you no longer need any data, delete `INFRAMESH_HOME` and drop the PostgreSQL database. This permanently deletes the accounts, the data and the secrets.
