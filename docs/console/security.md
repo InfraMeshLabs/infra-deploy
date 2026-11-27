@@ -184,19 +184,19 @@ Treat the following as secrets:
 
 | Item | Standalone | Docker |
 | --- | --- | --- |
-| Administrator and user accounts | Stored in the H2 database under `INFRAMESH_HOME/data` | Stored in PostgreSQL |
+| Administrator and user accounts | Stored in your PostgreSQL database | Stored in PostgreSQL |
 | Bootstrap admin password | Not used by default — the first administrator is created in the browser | `INFRA_ADMIN_PASSWORD` in `.env` |
-| JWT signing key | Generated into `INFRAMESH_HOME/config/secrets.yml` | `JWT_SECRET_KEY` in `.env` |
-| Encryption key (Node API Keys) | Generated into `INFRAMESH_HOME/config/secrets.yml` | `ENCRYPTION_KEY` in `.env` |
+| JWT signing key | Generated into `INFRAMESH_HOME/config/standalone.yml` (`config/secrets.yml` for installations created by v0.2.4 or earlier) | `JWT_SECRET_KEY` in `.env` |
+| Encryption key (Node API Keys) | Generated into `INFRAMESH_HOME/config/standalone.yml` (`config/secrets.yml` for installations created by v0.2.4 or earlier) | `ENCRYPTION_KEY` in `.env` |
 | Member API Keys | Stored as SHA-256 hashes in the database | Stored as SHA-256 hashes in the database |
 | Node API Keys | Stored encrypted in the database | Stored encrypted in the database |
 | OUTBOUND node credentials and registration tokens | Stored as SHA-256 hashes in the database | Stored as SHA-256 hashes in the database |
-| Database | `INFRAMESH_HOME/data` | `postgres-data` volume, `POSTGRES_PASSWORD` in `.env` |
+| Database | Your PostgreSQL database; its password in `INFRAMESH_HOME/config/standalone.yml` (owner-only, not encrypted) | `postgres-data` volume, `POSTGRES_PASSWORD` in `.env` |
 
 Recommendations:
 
-- Never commit or share `.env`, `secrets.yml`, database files or database dumps. `.env` is ignored by Git in this repository.
-- Keep backups of `INFRAMESH_HOME`, `backup.sql` and `.env` in a location only you or your operators can read.
+- Never commit or share `.env`, `standalone.yml`, `secrets.yml`, database files or database dumps. `.env` is ignored by Git in this repository.
+- Keep backups of `INFRAMESH_HOME/config/`, database dumps (`backup.sql`, `pg_dump` files) and `.env` in a location only you or your operators can read.
 - Use strong, unique passwords for administrator accounts.
 - Never change the encryption key once data exists: previously stored keys can no longer be decrypted. Changing the JWT signing key signs every user out.
 - When setting secrets through environment variables, remember that other processes run by the same user, shell history and process listings may expose them.
@@ -217,7 +217,7 @@ If a credential is exposed:
 
 ## Package Integrity
 
-Current limitations of the v0.2.4 standalone packages:
+Current limitations of the standalone packages (v0.3.0):
 
 - macOS packages are not code-signed.
 - macOS packages are not notarized.

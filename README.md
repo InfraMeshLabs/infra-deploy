@@ -50,7 +50,7 @@ This repository currently deploys the **Console**.
 
 ## Choosing a Deployment
 
-- **Standalone** — a single Console on your own macOS or Windows PC. Download, extract and run. Available from Console v0.2.0.
+- **Standalone** — a single Console on your own macOS or Windows PC, using a PostgreSQL database you provide. Download, extract and run. Available from Console v0.2.0; PostgreSQL is required from v0.3.0.
 - **Docker** — servers, Linux and shared environments. Runs anywhere with Docker Engine and Docker Compose v2.
 
 | | Standalone | Docker |
@@ -58,9 +58,9 @@ This repository currently deploys the **Console**.
 | Supported environments | macOS (arm64, x64), Windows x64 | Any Docker-supported environment (Linux, macOS / Windows with Docker Desktop) |
 | Java installation | Not required (runtime bundled) | Not required (runtime in image) |
 | Docker installation | Not required | Required |
-| Database | Embedded H2 (file-based) | PostgreSQL |
+| Database | PostgreSQL you provide (not bundled; 16 is the verified version) | PostgreSQL (`postgres:16` in the Compose stack) |
 | Redis | Optional, not bundled | Optional (`affinity` / `redis` Compose profiles) |
-| Data persistence | `INFRAMESH_HOME` directory | `postgres-data` Docker volume |
+| Data persistence | Your PostgreSQL database + `INFRAMESH_HOME` (connection and secrets) | `postgres-data` Docker volume + `.env` |
 | Network binding | `127.0.0.1` by default | Published host port (`INFRA_CONSOLE_PORT`) |
 | Installation | Extract the archive and run the launcher | `docker compose up -d` |
 
@@ -79,29 +79,33 @@ This repository currently deploys the **Console**.
 
 Each package ships with a `.sha256` checksum file. There is no Linux standalone package; use Docker on Linux.
 
+1. Prepare an empty PostgreSQL database and a user that owns it — see [Standalone — PostgreSQL](docs/console/standalone.md#postgresql).
 1. Download the package for your platform and its `.sha256` file from the [Releases page](https://github.com/InfraMeshLabs/infra-deploy/releases).
 2. Verify the checksum, extract, and run the launcher.
 
    macOS:
 
    ```bash
-   shasum -a 256 -c inframesh-console-0.2.4-macos-arm64.tar.gz.sha256
-   tar -xzf inframesh-console-0.2.4-macos-arm64.tar.gz
-   ./inframesh-console-0.2.4/bin/inframesh
+   shasum -a 256 -c inframesh-console-0.3.0-macos-arm64.tar.gz.sha256
+   tar -xzf inframesh-console-0.3.0-macos-arm64.tar.gz
+   ./inframesh-console-0.3.0/bin/inframesh
    ```
 
    Windows (after verifying the checksum and extracting the ZIP):
 
    ```bat
-   inframesh-console-0.2.4\bin\inframesh.cmd
+   inframesh-console-0.3.0\bin\inframesh.cmd
    ```
 
-3. When the Console is ready, your browser opens `http://127.0.0.1:8080`. On the first launch you create the administrator account in the browser.
+3. On the first launch the browser opens the database connection setup page. Enter the PostgreSQL connection, choose **Test connection** and **Save and start**, then create the administrator account. Later launches start directly and open `http://127.0.0.1:8080`.
 
 Press `Ctrl+C` in the terminal to stop the Console.
 
 > [!WARNING]
 > The packages are not code-signed yet — see [Standalone Installation](docs/console/standalone.md) for Gatekeeper / SmartScreen notes and full instructions.
+
+> [!IMPORTANT]
+> Upgrading a Standalone installation from v0.2.4 or earlier? Its data is in an embedded H2 file that v0.3.0 does not open. Follow [Standalone from v0.2.x (H2) to v0.3.0](docs/console/upgrade.md#standalone-from-v02x-h2-to-v030).
 
 ### Docker
 
@@ -153,7 +157,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 
 | Service | Image | Notes |
 | --- | --- | --- |
-| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.2.4}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
+| `console` | `ghcr.io/inframeshlabs/infra-console:${INFRA_CONSOLE_VERSION:-0.3.0}` | Frontend, REST API and Node WebSocket on HTTP `:8080`. Runs with the `prod` profile. |
 | `postgres` | `postgres:16` | Database `infra_mesh`. Data persisted in the `postgres-data` volume. |
 | `redis` | `redis:7.4` | Optional, only started with `--profile affinity` or `--profile redis`. Holds Session Affinity and shared Worker Capacity state (TTL-based, no volume). |
 
@@ -172,7 +176,7 @@ Redis is not started by default — see [Redis](docs/console/installation.md#red
 The Console image tag is set in `console/.env`:
 
 ```env
-INFRA_CONSOLE_VERSION=0.2.4
+INFRA_CONSOLE_VERSION=0.3.0
 ```
 
 The default is a pinned version so that a deployment always reproduces the same Console. `INFRA_CONSOLE_VERSION=latest` is also available if you explicitly want to track the newest release. See [Upgrading](docs/console/upgrade.md).
@@ -196,17 +200,17 @@ The Console uses the registered address as-is; it never rewrites `localhost`. Se
 
 | Deployment | Persistent data | Survives |
 | --- | --- | --- |
-| Standalone | `INFRAMESH_HOME` (default `~/.inframesh`, Windows `%USERPROFILE%\.inframesh`) — kept separate from the extracted package | Restarts, and package upgrades as long as the directory is kept |
+| Standalone | Your PostgreSQL database, and `INFRAMESH_HOME` (default `~/.inframesh`, Windows `%USERPROFILE%\.inframesh`) with the connection and secrets — kept separate from the extracted package | Restarts, and package upgrades as long as both are kept |
 | Docker | `postgres-data` volume | `docker compose stop` / `down` / image updates |
 
 > [!CAUTION]
 > `docker compose down -v` deletes the `postgres-data` volume and all Console data.
 
-Back up before every upgrade. See [Standalone — Data Directory](docs/console/standalone.md#data-directory) and [Docker — Backup and Restore](docs/console/installation.md#backup-and-restore).
+Back up before every upgrade. See [Standalone — Backup and Restore](docs/console/standalone.md#backup-and-restore) and [Docker — Backup and Restore](docs/console/installation.md#backup-and-restore).
 
 ## Upgrading
 
-- **Standalone:** stop the Console, back up `INFRAMESH_HOME`, extract the new release into a new directory and run it. The existing data directory is reused.
+- **Standalone:** stop the Console, back up the PostgreSQL database and `INFRAMESH_HOME/config/`, extract the new release into a new directory and run it. The stored connection is reused. From v0.2.4 or earlier, follow the H2 migration in the upgrade guide.
 - **Docker:** back up PostgreSQL, change `INFRA_CONSOLE_VERSION`, then `docker compose pull` and `docker compose up -d`.
 
 See [Upgrading](docs/console/upgrade.md).
@@ -233,10 +237,10 @@ See [Security](docs/console/security.md) and [HTTPS and Reverse Proxy](docs/cons
 
 | Document | Covers |
 | --- | --- |
-| [Standalone Installation](docs/console/standalone.md) | macOS / Windows packages, first run, configuration, data directory |
+| [Standalone Installation](docs/console/standalone.md) | macOS / Windows packages, PostgreSQL preparation, first run, configuration, data directory, backup |
 | [Docker Installation](docs/console/installation.md) | Docker Compose, Redis, runtime addresses, HTTPS, operations, backup |
 | [Configuration](docs/console/configuration.md) | Every Docker `.env` variable |
-| [Upgrading](docs/console/upgrade.md) | Upgrading standalone and Docker deployments |
+| [Upgrading](docs/console/upgrade.md) | Upgrading standalone and Docker deployments, moving v0.2.x H2 data to PostgreSQL |
 | [Security](docs/console/security.md) | Network exposure, TLS, secrets, package integrity |
 | [Standalone Network Access](docs/console/standalone-network.md) | Exposing the standalone Console to other PCs: LAN / VPN, TLS reverse proxy, firewall, remote OUTBOUND nodes |
 | [Ollama Remote Access](docs/console/ollama-remote-access.md) | Connecting Ollama on another PC, network binding, troubleshooting |

@@ -15,7 +15,7 @@ Do not wrap values in quotes. `.env` is ignored by Git; never commit or share it
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `INFRA_CONSOLE_VERSION` | `0.2.4` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
+| `INFRA_CONSOLE_VERSION` | `0.3.0` | Tag of `ghcr.io/inframeshlabs/infra-console`. Pin a version; `latest` is optional (see [upgrade.md](upgrade.md)). |
 | `INFRA_CONSOLE_PORT` | `8080` | Host port for the Console. The container port is always `8080`. |
 
 ## Required
